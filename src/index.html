@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Evaluate open source project health metrics for GitHub repositories" />
+  <title>Open Source Project Health Analyzer</title>
+  <link rel="stylesheet" href="/src/styles/main.css" />
+</head>
+<body>
+  <header role="banner">
+    <h1>Open Source Project Health Analyzer</h1>
+    <p>Evaluate GitHub repository health using industry-standard metrics</p>
+  </header>
+
+  <main role="main">
+    <section id="input-section" aria-label="Repository input">
+      <form id="repo-form">
+        <label for="repo-url">
+          GitHub Repository URL
+          <span class="required" aria-label="required">*</span>
+        </label>
+        <input
+          type="url"
+          id="repo-url"
+          name="repo-url"
+          placeholder="https://github.com/owner/repository"
+          aria-describedby="url-help"
+          required
+        />
+        <small id="url-help">Enter the full GitHub repository URL to analyze</small>
+        <button type="submit">Analyze Repository</button>
+      </form>
+    </section>
+
+    <section id="results-section" aria-label="Analysis results" hidden>
+      <div id="loading" aria-live="polite" aria-busy="false">
+        <p>Analyzing repository...</p>
+      </div>
+      <div id="results-container"></div>
+    </section>
+  </main>
+
+  <footer role="contentinfo">
+    <p>&copy; 2026 Open Source Project Health Analyzer</p>
+  </footer>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
