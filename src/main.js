@@ -3,6 +3,7 @@
  * Initializes the application and sets up event handlers
  */
 
+import './styles/main.css';
 import { parseRepoFromUrl } from './utils/urlParams.js';
 import { EvaluationOrchestrator } from './services/evaluationOrchestrator.js';
 import { HealthScoreCalculator } from './services/healthScoreCalculator.js';
