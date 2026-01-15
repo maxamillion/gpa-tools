@@ -19,7 +19,7 @@ A single-page web application for evaluating GitHub repository health using indu
 
 ### Prerequisites
 
-- Node.js 18+ (LTS recommended)
+- Node.js 20.19+ or 22.12+ (required by Vite 7)
 - npm 9+
 - Modern browser (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
 

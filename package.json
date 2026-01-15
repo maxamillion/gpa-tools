@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Open Source Project Health Analyzer - Evaluate GitHub repository health metrics",
   "type": "module",
+  "engines": {
+    "node": ">=20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
