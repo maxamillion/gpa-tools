@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // Use /gpa-tools/ for production builds, / for development
+  base: command === 'build' ? '/gpa-tools/' : '/',
   root: 'src',
   build: {
     outDir: '../dist',
@@ -15,4 +17,4 @@ export default defineConfig({
   preview: {
     port: 4173
   }
-});
+}));
