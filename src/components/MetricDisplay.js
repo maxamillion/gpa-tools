@@ -3,7 +3,8 @@
  * Displays a single metric card with value, score, grade, and explanation
  */
 
-import './MetricInfoModal.js';
+import './MetricDetailModal.js';
+import './MetricTooltip.js';
 
 export class MetricDisplay extends HTMLElement {
   constructor() {
@@ -27,11 +28,23 @@ export class MetricDisplay extends HTMLElement {
 
   setupEventListeners() {
     const infoButton = this.shadowRoot.querySelector('.info-button');
-    const modal = this.shadowRoot.querySelector('metric-info-modal');
+    const modal = this.shadowRoot.querySelector('metric-detail-modal');
 
     if (infoButton && modal) {
       infoButton.addEventListener('click', () => {
-        modal.open();
+        // Open modal with full metric data including examples and thresholds
+        modal.open({
+          id: this._metric.id,
+          name: this._metric.name,
+          category: this._metric.category,
+          explanation: this._metric.explanation,
+          value: this._metric.value,
+          score: this._metric.score,
+          grade: this._metric.grade,
+          chaossLink: this._metric.chaossLink,
+          threshold: this._metric.threshold,
+          examples: this._metric.examples,
+        });
       });
     }
   }
@@ -78,6 +91,13 @@ export class MetricDisplay extends HTMLElement {
           font-size: var(--font-size-lg, 1.125rem);
           font-weight: 600;
           color: var(--color-text-primary, #24292e);
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-xs, 0.5rem);
+        }
+
+        metric-tooltip {
+          display: inline-flex;
         }
 
         .info-button {
@@ -139,6 +159,31 @@ export class MetricDisplay extends HTMLElement {
           font-style: italic;
         }
 
+        .supporting-evidence {
+          margin-top: var(--spacing-sm, 0.5rem);
+          padding: var(--spacing-sm, 0.5rem);
+          background-color: var(--color-surface-alt, #f6f8fa);
+          border-radius: var(--border-radius-sm, 4px);
+          font-size: var(--font-size-sm, 0.875rem);
+        }
+
+        .supporting-evidence summary {
+          cursor: pointer;
+          font-weight: 600;
+          color: var(--color-text-secondary, #586069);
+          user-select: none;
+        }
+
+        .supporting-evidence summary:hover {
+          color: var(--color-text-primary, #24292e);
+        }
+
+        .supporting-evidence p {
+          margin: var(--spacing-xs, 0.25rem) 0 0;
+          color: var(--color-text-secondary, #586069);
+          line-height: 1.5;
+        }
+
         /* Grade-specific styles */
         .grade-a-plus .metric-grade,
         .grade-excellent .metric-grade {
@@ -181,6 +226,109 @@ export class MetricDisplay extends HTMLElement {
           color: var(--color-success-dark, #22863a);
           border: 1px solid var(--color-success, #28a745);
         }
+
+        .grade-manual-review-needed .metric-grade {
+          background-color: var(--color-warning-light, #fff5b1);
+          color: var(--color-warning-dark, #735c0f);
+          border: 1px solid var(--color-warning, #ffd33d);
+        }
+
+        /* Threshold Visualization */
+        .threshold-visualization {
+          margin: var(--spacing-md, 1rem) 0;
+        }
+
+        .threshold-title {
+          font-size: var(--font-size-xs, 0.75rem);
+          font-weight: 600;
+          text-transform: uppercase;
+          color: var(--color-text-secondary, #586069);
+          margin-bottom: var(--spacing-xs, 0.25rem);
+          letter-spacing: 0.5px;
+        }
+
+        .threshold-bar {
+          position: relative;
+          display: flex;
+          height: 32px;
+          border-radius: var(--border-radius, 8px);
+          overflow: hidden;
+          box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .threshold-segment {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: var(--font-size-xs, 0.75rem);
+          font-weight: 600;
+          color: white;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          transition: var(--transition-fast, 150ms ease);
+        }
+
+        .threshold-segment:hover {
+          filter: brightness(1.1);
+        }
+
+        .threshold-segment.poor {
+          background-color: var(--color-danger, #d73a49);
+        }
+
+        .threshold-segment.fair {
+          background-color: var(--color-warning, #ffd33d);
+          color: var(--color-warning-dark, #735c0f);
+        }
+
+        .threshold-segment.good {
+          background-color: var(--color-info, #0366d6);
+        }
+
+        .threshold-segment.excellent {
+          background-color: var(--color-success, #28a745);
+        }
+
+        .score-marker {
+          position: absolute;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          width: 16px;
+          height: 16px;
+          background-color: white;
+          border: 3px solid var(--color-text-primary, #24292e);
+          border-radius: 50%;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+          z-index: 10;
+        }
+
+        .score-marker::after {
+          content: attr(data-score);
+          position: absolute;
+          top: -24px;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: var(--color-text-primary, #24292e);
+          color: white;
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-size: var(--font-size-xs, 0.75rem);
+          font-weight: 700;
+          white-space: nowrap;
+        }
+
+        .threshold-labels {
+          display: flex;
+          justify-content: space-between;
+          margin-top: var(--spacing-xs, 0.25rem);
+          font-size: var(--font-size-xs, 0.75rem);
+          color: var(--color-text-tertiary, #6a737d);
+        }
+
+        .threshold-label {
+          text-align: center;
+          font-weight: 500;
+        }
       </style>
 
       <article
@@ -189,26 +337,45 @@ export class MetricDisplay extends HTMLElement {
         aria-label="${this._metric.name} metric: ${this._metric.value}, grade ${this._metric.grade}"
       >
         <div class="metric-header">
-          <h3 class="metric-name">${this._metric.name}</h3>
-          <button class="info-button" aria-label="View ${this._metric.name} information">ⓘ</button>
+          <h3 class="metric-name">
+            ${this._metric.name}
+            <metric-tooltip id="tooltip-${this._metric.id}"></metric-tooltip>
+          </h3>
+          <button class="info-button" aria-label="View detailed ${this._metric.name} information">ⓘ</button>
         </div>
         <div class="metric-value">${this.formatValue(this._metric.value)}</div>
         <div>
           <span class="metric-score">Score: ${this._metric.score}/100</span>
           <span class="metric-grade">${this._metric.grade}</span>
         </div>
+        ${this._metric.score !== null && this._metric.score !== undefined ? this._renderThresholdVisualization() : ''}
         <p class="metric-explanation">${this._metric.explanation}</p>
         <div class="confidence-indicator">Confidence: ${confidenceText}</div>
+        ${this._metric.supportingEvidence ? `
+          <details class="supporting-evidence">
+            <summary>Supporting Evidence</summary>
+            <p>${this._metric.supportingEvidence}</p>
+          </details>
+        ` : ''}
       </article>
 
-      <metric-info-modal></metric-info-modal>
+      <metric-detail-modal id="modal-${this._metric.id}"></metric-detail-modal>
     `;
 
-    // Set up modal with metric data and event listeners
-    const modal = this.shadowRoot.querySelector('metric-info-modal');
-    if (modal) {
-      modal.metric = this._metric;
+    // Set up tooltip with metric data
+    const tooltip = this.shadowRoot.querySelector('metric-tooltip');
+    if (tooltip) {
+      tooltip.metric = {
+        id: this._metric.id,
+        name: this._metric.name,
+        category: this._metric.category,
+        explanation: this._metric.explanation,
+        chaossLink: this._metric.chaossLink,
+        threshold: this._metric.threshold,
+      };
     }
+
+    // Set up event listeners for modal
     this.setupEventListeners();
   }
 
@@ -226,6 +393,8 @@ export class MetricDisplay extends HTMLElement {
       'Poor': 'grade-poor',
       'Pass': 'grade-pass',
       'Fail': 'grade-fail',
+      'manual-review-needed': 'grade-manual-review-needed',
+      'Manual Review Needed': 'grade-manual-review-needed',
     };
     return gradeMap[grade] || 'grade-unknown';
   }
@@ -235,6 +404,9 @@ export class MetricDisplay extends HTMLElement {
       high: 'High',
       medium: 'Medium',
       low: 'Low',
+      definite: 'Definite',
+      likely: 'Likely',
+      'manual-review-needed': 'Manual Review Needed',
     };
     return confidenceMap[confidence] || 'Unknown';
   }
@@ -250,6 +422,42 @@ export class MetricDisplay extends HTMLElement {
       return value ? 'Yes' : 'No';
     }
     return value;
+  }
+
+  /**
+   * Render threshold visualization bar showing score ranges
+   * @returns {string} HTML string for threshold visualization
+   */
+  _renderThresholdVisualization() {
+    const score = this._metric.score;
+
+    // Skip visualization if score is N/A or invalid
+    if (score === null || score === undefined || score < 0 || score > 100) {
+      return '';
+    }
+
+    // Calculate score position as percentage (0-100)
+    const scorePosition = score;
+
+    return `
+      <div class="threshold-visualization" role="img" aria-label="Score visualization: ${score} out of 100">
+        <div class="threshold-title">Score Range</div>
+        <div class="threshold-bar">
+          <div class="threshold-segment poor" title="Poor: 0-50">Poor</div>
+          <div class="threshold-segment fair" title="Fair: 50-70">Fair</div>
+          <div class="threshold-segment good" title="Good: 70-85">Good</div>
+          <div class="threshold-segment excellent" title="Excellent: 85-100">Excellent</div>
+          <div class="score-marker" data-score="${score}" style="left: ${scorePosition}%"></div>
+        </div>
+        <div class="threshold-labels">
+          <span class="threshold-label">0</span>
+          <span class="threshold-label">50</span>
+          <span class="threshold-label">70</span>
+          <span class="threshold-label">85</span>
+          <span class="threshold-label">100</span>
+        </div>
+      </div>
+    `;
   }
 }
 

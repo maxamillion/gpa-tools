@@ -1,187 +1,165 @@
 # Implementation Plan: Open Source Project Health Analyzer
 
-**Branch**: `001-project-health-analyzer` | **Date**: 2026-01-15 | **Spec**: [spec.md](spec.md)
+**Branch**: `001-project-health-analyzer` | **Date**: 2026-01-16 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-project-health-analyzer/spec.md`
+
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-A static single-page web application for evaluating open source project health metrics that combines industry-standard baseline metrics (activity, community, maintenance, documentation, security) with user-customizable evaluation criteria. The application must be hostable on GitHub Pages, require zero server-side dependencies, and provide comprehensive health reports with educational context for users of all experience levels.
-
-**Technical Approach**: Client-side JavaScript application using modern web standards, GitHub REST API for data fetching, browser localStorage for persistence, and URL parameters for sharing. Optimized bundle size and caching strategy to meet 3-second TTI requirement.
+Single-page web application for evaluating open source project health using industry-standard metrics (CHAOSS framework) plus user-defined custom criteria. Statically hosted on GitHub Pages with client-side GitHub API integration, local storage caching, and comprehensive accessibility support (WCAG 2.1 AA).
 
 ## Technical Context
 
-**Language/Version**: JavaScript ES2022+ (modern browser support), HTML5, CSS3
-**Primary Dependencies**: GitHub REST API (Octokit.js or native fetch), Chart.js or similar for visualizations, No backend framework required (static SPA)
-**Storage**: Browser localStorage for user preferences and custom criteria, URL parameters for sharing evaluations, No server-side database
-**Testing**: Vitest for unit tests, Playwright for E2E tests, JSDoc for type hints (or TypeScript for enhanced type safety)
-**Target Platform**: Modern web browsers (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+), GitHub Pages static hosting
-**Project Type**: Single-page web application (frontend only, no backend)
-**Performance Goals**: < 3 second TTI on 10 Mbps, < 500KB initial bundle gzipped, < 10 second evaluation completion, 60 FPS UI interactions
-**Constraints**: Zero server-side processing, GitHub API rate limits (60 req/hr unauthenticated, 5000 req/hr authenticated), Must work offline after initial load with cached data
-**Scale/Scope**: Single-user client-side application, Handles repositories with 10-10,000 contributors, Supports comparison of up to 5 projects simultaneously
+**Language/Version**: JavaScript ES2022+ (modern browser support)
+**Primary Dependencies**: @octokit/rest (GitHub API), Chart.js (visualization), MSW (API mocking)
+**Storage**: Browser localStorage (4MB limit, 24-hour TTL with LRU eviction)
+**Testing**: Vitest (unit/integration), MSW (API mocks), Playwright (E2E), axe-core (accessibility)
+**Target Platform**: Modern web browsers (Chrome, Firefox, Safari, Edge), GitHub Pages static hosting
+**Project Type**: Web application (single-page app, no backend)
+**Performance Goals**: <3s Time to Interactive on 3G, <500KB initial bundle (gzipped), <2.5s LCP
+**Constraints**: Client-side only (no server), GitHub API rate limits (5000/hour authenticated), WCAG 2.1 AA compliance mandatory
+**Scale/Scope**: Single repository evaluation per request, 18 baseline metrics, unlimited custom criteria, <10s full evaluation time
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### I. Test-Driven Development (TDD)
-- ✅ **PASS**: All features will be developed using TDD workflow
-- **Plan**: Write unit tests for metric calculation functions before implementation
-- **Plan**: Write integration tests for GitHub API interactions before implementation
-- **Plan**: Write E2E tests for user workflows (URL input → health report display) before implementation
-- **Verification**: Test coverage reports required, ≥ 80% for business logic
+### Pre-Design (Phase 0) ✅
 
-### II. Code Quality Standards
-- ✅ **PASS**: Will enforce with ESLint, Prettier, and automated checks
-- **Plan**: Maximum complexity 10 per function (enforce with ESLint complexity rule)
-- **Plan**: Maximum 50 lines per function, 500 lines per file (enforce with ESLint)
-- **Plan**: Zero linting errors tolerance, JSDoc/TypeScript for type safety
-- **Plan**: Code review required before merge
+**I. Test-Driven Development (NON-NEGOTIABLE)**: ✅ PASS
+- Testing strategy defined in research.md: Vitest + MSW + Playwright
+- TDD workflow will be enforced: Red-Green-Refactor cycle mandatory
+- Testing pyramid implementation planned (80% unit coverage target)
 
-### III. User Experience Consistency
-- ✅ **PASS**: WCAG 2.1 AA compliance required per spec
-- **Plan**: Semantic HTML with ARIA labels for all interactive elements
-- **Plan**: Keyboard navigation for all features (tab order, enter/space activation)
-- **Plan**: Screen reader testing with NVDA/VoiceOver
-- **Plan**: Loading states for operations > 200ms (FR-023)
-- **Plan**: Mobile-first responsive design (FR-026)
-- **Plan**: Clear error messages with actionable guidance (FR-023)
+**II. Code Quality Standards**: ✅ PASS
+- Linting/formatting tools to be configured: ESLint, Prettier
+- Type safety: JavaScript with JSDoc type annotations for critical functions
+- Code review required before merge (defined in constitution)
 
-### IV. Performance Requirements
-- ✅ **PASS**: Performance budgets align with spec requirements
-- **Plan**: Initial bundle < 500KB gzipped (FR-026, constitution requirement)
-- **Plan**: TTI < 3 seconds on 3G networks (FR-026, constitution requirement)
-- **Plan**: Core Web Vitals: LCP < 2.5s, FID < 100ms, CLS < 0.1
-- **Plan**: Code splitting for comparison and advanced features
-- **Plan**: Lazy loading for non-critical components
-- **Plan**: Caching strategy using localStorage and service worker (FR-028)
-- **Plan**: Performance regression tests in CI/CD
+**III. User Experience Consistency**: ✅ PASS
+- WCAG 2.1 AA compliance mandatory (detailed in research.md section 7)
+- Accessibility testing with axe-core automated + manual screen reader testing
+- Responsive design: mobile-first approach planned
+- Error handling: all FR requirements specify clear user-facing error messages
 
-### V. Testing Pyramid
-- ✅ **PASS**: Will follow pyramid structure
-- **Plan**: Unit tests: ≥ 80% coverage for metric calculations, scoring algorithms, data transformations
-- **Plan**: Integration tests: GitHub API interactions, localStorage persistence, URL parameter handling
-- **Plan**: Contract tests: GitHub API response schemas, Expected metric output formats
-- **Plan**: E2E tests: Critical user journeys only (evaluate project, add custom criteria, share evaluation)
-- **Plan**: Test independence: No shared state, mocked GitHub API responses
-- **Plan**: Fast execution: Unit tests < 100ms each, full suite < 5 minutes
+**IV. Performance Requirements**: ✅ PASS
+- Performance budgets defined: <3s TTI, <500KB initial bundle, <2.5s LCP
+- Bundle size monitoring: bundlesize tool configured in research.md
+- Performance regression detection planned in CI/CD
+- Caching strategy: 24-hour TTL with LRU eviction (research.md section 3)
 
-### VI. Documentation Excellence
-- ✅ **PASS**: Comprehensive documentation planned
-- **Plan**: README with setup, architecture overview, contribution guidelines
-- **Plan**: Inline JSDoc for all public functions and complex algorithms
-- **Plan**: User guide integrated into application (contextual help - FR-021)
-- **Plan**: ADRs for significant decisions (framework choice, architecture patterns)
-- **Plan**: Metric explanation content (educational component - User Story 4)
-- **Plan**: quickstart.md for developers getting started
+**V. Testing Pyramid**: ✅ PASS
+- Unit tests: ≥80% coverage target (Vitest)
+- Integration tests: ≥70% coverage (Vitest + MSW for API integration)
+- E2E tests: Critical paths only (Playwright - evaluate repo, custom criteria, errors)
+- Contract tests: GitHub API contracts defined in Phase 1
 
-### Performance Standards
-- ✅ **PASS**: Frontend budgets align with constitution
-- **Initial bundle**: < 500KB gzipped ✅ (constitution: < 500KB)
-- **Total bundle**: < 2MB ✅ (constitution: < 2MB)
-- **FCP**: < 1.5 seconds ✅ (constitution: < 1.5s)
-- **LCP**: < 2.5 seconds ✅ (constitution: < 2.5s)
-- **TTI**: < 3 seconds on 3G ✅ (spec + constitution: < 3s)
-- **FID**: < 100ms ✅ (constitution: < 100ms)
-- **CLS**: < 0.1 ✅ (constitution: < 0.1)
+**VI. Documentation Excellence**: ✅ PASS
+- Research document complete (2000+ lines)
+- Quickstart guide planned (Phase 1 deliverable)
+- API contracts documentation planned (Phase 1 deliverable)
+- Inline code documentation required via JSDoc
+- README.md exists with setup instructions
 
-### Development Workflow
-- ✅ **PASS**: Will implement all workflow requirements
-- **Plan**: Feature branch workflow with pull requests
-- **Plan**: Code review required before merge
-- **Plan**: CI/CD with GitHub Actions (linting, testing, bundle size checks)
-- **Plan**: Automated deployment to GitHub Pages on main branch merge
-- **Plan**: Conventional Commits format for commit messages
+### Post-Design (Phase 1) ✅
 
-### Summary
-**CONSTITUTION CHECK: PASS ✅** - All constitutional requirements can be met for this feature. No violations require justification.
+**Architecture Review**: ✅ PASS
+- ✅ Data model complexity justified: 6 core entities align with functional requirements, no over-engineering
+- ✅ Component architecture follows SOLID principles: Single responsibility (MetricCard, CategorySection), separation of concerns (services vs components)
+- ✅ No unnecessary abstractions: Direct Web Components implementation, no framework overhead, simple event bus for component communication
+
+**Performance Budget Validation**: ✅ PASS
+- ✅ Estimated bundle sizes within budget: Initial ~300KB (main code), vendor ~200KB (@octokit), total <500KB complies with FR-025
+- ✅ API call optimization strategy documented: Parallel category fetching, progressive loading, ETag conditional requests (research.md section 1)
+- ✅ Critical rendering path optimized: DNS prefetch, preconnect to GitHub API, inline critical CSS, lazy load Chart.js (research.md section 6)
+
+**Accessibility Design Review**: ✅ PASS
+- ✅ Component designs include ARIA specifications: All components documented with proper roles, labels, live regions (research.md section 7)
+- ✅ Keyboard navigation patterns documented: Tab order, focus indicators, skip links, keyboard event handlers defined
+- ✅ Focus management strategy defined: Focus trap in modals, visible focus indicators (:focus-visible), logical tab order
+
+**Constitution Compliance Summary**:
+- All 6 constitutional principles validated and passing
+- No complexity violations requiring justification
+- Phase 1 design ready for implementation (Phase 2: task generation)
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/001-project-health-analyzer/
-├── plan.md              # This file
-├── research.md          # Phase 0: Technology research and decisions
-├── data-model.md        # Phase 1: Entity definitions and relationships
-├── quickstart.md        # Phase 1: Developer getting started guide
-├── contracts/           # Phase 1: API contracts and schemas
-│   ├── github-api.md    # GitHub API endpoints and response schemas
-│   └── metrics-schema.md # Metric calculation specifications
-└── checklists/
-    └── requirements.md  # Specification quality checklist
+specs/[###-feature]/
+├── plan.md              # This file (/speckit.plan command output)
+├── research.md          # Phase 0 output (/speckit.plan command)
+├── data-model.md        # Phase 1 output (/speckit.plan command)
+├── quickstart.md        # Phase 1 output (/speckit.plan command)
+├── contracts/           # Phase 1 output (/speckit.plan command)
+└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
 
 ```text
 src/
-├── components/          # UI components (metric cards, charts, forms)
-│   ├── MetricDisplay.js
+├── components/          # Web Components (Light DOM)
+│   ├── MetricCard.js
+│   ├── CategorySection.js
+│   ├── HealthScoreCard.js
+│   ├── RepositoryInput.js
 │   ├── CustomCriteriaForm.js
-│   ├── ComparisonView.js
-│   └── HelpTooltip.js
-├── services/           # Business logic and API interactions
-│   ├── githubApi.js    # GitHub API client
-│   ├── metricCalculator.js  # Metric calculation logic
-│   ├── criteriaEvaluator.js # Custom criteria evaluation
-│   └── cacheManager.js # localStorage caching
-├── models/             # Data structures and entities
+│   ├── ErrorDisplay.js
+│   └── LoadingSpinner.js (Shadow DOM)
+├── services/           # Business logic and API integration
+│   ├── GitHubApiClient.js
+│   ├── MetricCalculator.js
+│   ├── CacheManager.js
+│   └── EvaluationOrchestrator.js
+├── models/            # Data models and types
 │   ├── Repository.js
 │   ├── Metric.js
 │   ├── CustomCriterion.js
-│   └── EvaluationProfile.js
-├── utils/              # Utility functions
-│   ├── urlParams.js    # URL parameter handling
-│   ├── scoring.js      # Scoring algorithms
-│   └── formatters.js   # Data formatting helpers
-├── config/             # Configuration and constants
-│   ├── metricDefinitions.js  # Baseline metric definitions
-│   └── thresholds.js   # Scoring thresholds
-├── styles/             # CSS files
+│   └── HealthScore.js
+├── utils/             # Utilities and helpers
+│   ├── export.js
+│   ├── scoring.js
+│   └── eventBus.js
+├── styles/            # CSS
 │   ├── main.css
-│   └── components.css
-├── index.html          # Entry point
-└── main.js             # Application initialization
+│   ├── components.css
+│   └── themes.css
+└── main.js           # Application entry point
 
 tests/
-├── unit/               # Unit tests for services, models, utils
-│   ├── metricCalculator.test.js
-│   ├── criteriaEvaluator.test.js
-│   ├── scoring.test.js
-│   └── formatters.test.js
-├── integration/        # Integration tests for API and storage
-│   ├── githubApi.test.js
-│   ├── cacheManager.test.js
-│   └── urlParams.test.js
-└── e2e/                # End-to-end tests for user workflows
-    ├── evaluate-project.spec.js
-    ├── custom-criteria.spec.js
-    └── share-evaluation.spec.js
-
-docs/
-├── architecture.md     # System architecture overview
-├── metrics-guide.md    # Explanation of all baseline metrics
-└── adr/                # Architecture Decision Records
-    ├── 001-vanilla-js-vs-framework.md
-    ├── 002-github-api-authentication.md
-    └── 003-caching-strategy.md
-
-.github/
-├── workflows/
-│   ├── ci.yml          # Linting, testing, build verification
-│   └── deploy.yml      # GitHub Pages deployment
-└── CODEOWNERS          # Code review ownership
+├── unit/             # Vitest unit tests
+│   ├── services/
+│   ├── models/
+│   └── utils/
+├── integration/      # Vitest + MSW integration tests
+│   ├── api-integration.test.js
+│   └── workflow.test.js
+├── e2e/             # Playwright E2E tests
+│   ├── evaluate-repository.spec.js
+│   ├── custom-criteria.spec.js
+│   └── accessibility.spec.js
+├── mocks/           # MSW handlers
+│   └── handlers.js
+└── setup.js         # Test setup file
 
 public/
-├── favicon.ico
-└── assets/             # Images, icons, fonts
+├── index.html       # Entry point HTML
+└── favicon.ico
+
+vite.config.js       # Build configuration
+vitest.config.js     # Test configuration
+playwright.config.js # E2E test configuration
+package.json         # Dependencies
 ```
 
-**Structure Decision**: Selected single-page web application structure (Option 1 variant) because this is a frontend-only static application with no backend requirements. The structure separates concerns into components (UI), services (business logic), models (data structures), and utils (helpers). This organization supports TDD by making business logic easily testable in isolation from UI components.
+**Structure Decision**: Single-page web application structure with client-side only code. No backend directory needed since all logic runs in browser. Components use native Web Components (no framework), services handle GitHub API integration and metric calculation, models define data structures, and tests follow the testing pyramid (many unit, some integration, few E2E).
 
 ## Complexity Tracking
 
-> No constitutional violations - this section is empty per template instructions.
+> **Fill ONLY if Constitution Check has violations that must be justified**
+
+No constitutional violations identified. All design decisions align with project constitution principles.

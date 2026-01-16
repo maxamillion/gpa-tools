@@ -5,6 +5,16 @@
 **Status**: Draft
 **Input**: User description: "Create a single page web app that can be statically hosted on github pages to evaluate various open source project health metrics of a community as well as accept user input for a specific topic, theme, capability, technology focus area, or inclusion of certain technologies to evaluate a project on. Make sure to include various baseline metrics that are considered best practice to evaluate open source projects on and then accept the user input in addition to those baseline metrics."
 
+## Clarifications
+
+### Session 2026-01-16
+
+- Q: What should happen when GitHub API rate limits are exceeded during evaluation? → A: Queue remaining requests and retry with exponential backoff until limit resets
+- Q: How should the system calculate the overall health score from multiple baseline metrics? → A: Weighted average by category importance (Security/Maintenance higher weight than Documentation)
+- Q: How long should evaluation results be cached in browser local storage? → A: 24 hours
+- Q: What should happen when a user attempts to evaluate a private repository? → A: Show error immediately stating private repos are not supported
+- Q: How should the system handle repositories with incomplete data (e.g., no README, no releases, zero contributors)? → A: Calculate available metrics, mark unavailable metrics as "N/A" with explanation, adjust health score to exclude missing metrics
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Evaluate Project Health with Standard Metrics (Priority: P1)
@@ -77,10 +87,10 @@ A user who is not familiar with open source health metrics wants to understand w
 
 ### Edge Cases
 
-- What happens when a repository is private or requires authentication?
-- What happens when GitHub API rate limits are exceeded?
+- **Private repository or authentication required**: System detects private/restricted repository (HTTP 404 or 403 response) and displays clear error message: "This repository is private or does not exist. Only public repositories are supported." Evaluation stops immediately.
+- **GitHub API rate limits exceeded**: System queues remaining API requests and retries with exponential backoff (starting at 1 second, doubling up to 60 seconds max) until rate limit resets. User sees progress indicator showing "Waiting for API rate limit reset" with time remaining.
 - How does the system handle very large repositories with thousands of contributors?
-- What happens when repository data is incomplete (e.g., no README, no releases)?
+- **Incomplete repository data**: When data is missing (no README, no releases, zero contributors, etc.), system calculates all available metrics, marks unavailable metrics as "N/A" with explanatory text (e.g., "No releases found - release cadence cannot be calculated"), and adjusts category/overall health scores to exclude missing metrics from weighted average calculation.
 - How does the system handle custom criteria that cannot be automatically evaluated?
 - What happens when a repository is archived or deleted between evaluations?
 - How does the system handle repositories on platforms other than GitHub (GitLab, Bitbucket)?
@@ -114,7 +124,7 @@ A user who is not familiar with open source health metrics wants to understand w
 
 **Data Presentation & UX**
 
-- **FR-016**: System MUST display an overall health score or grade that summarizes all baseline metrics
+- **FR-016**: System MUST display an overall health score calculated as weighted average of category scores, with category weights: Security (25%), Maintenance (25%), Community (20%), Activity (15%), Documentation (15%)
 - **FR-017**: System MUST organize metrics into logical categories (Activity, Community, Maintenance, Documentation, Security)
 - **FR-018**: System MUST provide visual indicators (colors, icons, progress bars) to communicate metric status at a glance
 - **FR-019**: System MUST display trend information where applicable (improving/stable/declining)
@@ -122,6 +132,8 @@ A user who is not familiar with open source health metrics wants to understand w
 - **FR-021**: System MUST provide contextual help for each metric explaining its meaning and importance
 - **FR-022**: System MUST display timestamps showing when data was last fetched
 - **FR-023**: System MUST handle and display error states gracefully (API failures, missing data, invalid input)
+- **FR-036**: When user attempts to evaluate a private repository, system MUST detect private/restricted access (HTTP 404/403) and display error message: "This repository is private or does not exist. Only public repositories are supported."
+- **FR-037**: When repository data is incomplete or missing (no README, no releases, empty contributors list), system MUST calculate available metrics, display unavailable metrics as "N/A" with explanatory text, and recalculate category/overall health scores excluding missing metrics from weighted averages
 
 **Static Hosting & Performance**
 
@@ -129,15 +141,17 @@ A user who is not familiar with open source health metrics wants to understand w
 - **FR-025**: Application MUST be hostable on GitHub Pages as static files
 - **FR-026**: Application MUST load and become interactive within 3 seconds on a standard broadband connection
 - **FR-027**: Application MUST handle GitHub API authentication via personal access token (user-provided)
-- **FR-028**: Application MUST cache evaluation results locally to reduce API calls and improve performance
-- **FR-029**: Application MUST warn users about GitHub API rate limits and show remaining quota
+- **FR-028**: Application MUST cache evaluation results in browser local storage with 24-hour TTL (time-to-live), automatically invalidating stale cached data
+- **FR-029**: Application MUST warn users about GitHub API rate limits and show remaining quota before evaluation starts
+- **FR-034**: When GitHub API rate limit is exceeded, application MUST queue pending requests and retry with exponential backoff (1s, 2s, 4s, 8s, 16s, 32s, 60s max) until limit resets, displaying progress indicator with time remaining
 
 **Data Persistence & Sharing**
 
 - **FR-030**: Application MUST allow users to bookmark or save evaluations via URL parameters
 - **FR-031**: Application MUST allow users to export evaluation results as JSON or CSV
-- **FR-032**: Application MUST store user preferences and custom criteria definitions in browser local storage
+- **FR-032**: Application MUST store user preferences and custom criteria definitions in browser local storage (no expiration, persists until user clears browser data)
 - **FR-033**: Application MUST support sharing evaluations via shareable URLs that include repository and custom criteria
+- **FR-035**: Application MUST display cache age indicators showing when cached data was last fetched and allow manual cache refresh
 
 ### Assumptions
 
@@ -146,18 +160,18 @@ A user who is not familiar with open source health metrics wants to understand w
 - Users accessing the tool have modern web browsers with JavaScript enabled
 - GitHub public API is available and accessible to users
 - Users can obtain GitHub personal access tokens if they need higher rate limits
-- Most repositories being evaluated are public (private repo support is future enhancement)
+- Only public repositories are supported; private repository evaluation is explicitly not supported in this version
 - Evaluation criteria are primarily boolean or scored on a simple scale
 - Single-page app limitations are acceptable (no backend persistence required initially)
 
 ### Key Entities
 
 - **Repository**: An open source project to be evaluated, identified by owner and name, containing metadata like URL, description, language, stars, forks, creation date, and last update date
-- **Baseline Metric**: A standard health indicator with a name, category, score/value, explanation, threshold definitions, and data sources
+- **Baseline Metric**: A standard health indicator with a name, category, score/value (or "N/A" with explanation when data unavailable), explanation, threshold definitions, and data sources
 - **Custom Criterion**: A user-defined evaluation rule with a description, evaluation type (automatic/manual), result (pass/fail/score), confidence level, and supporting evidence
 - **Evaluation Profile**: A saved configuration containing repository identifier, baseline metrics to include, custom criteria definitions, evaluation timestamp, and sharing identifier
-- **Metric Category**: A grouping of related metrics (Activity, Community, Maintenance, Documentation, Security) for organizational clarity
-- **Health Score**: An aggregate score derived from baseline metrics, displayed as numerical value, grade, and trend indicator
+- **Metric Category**: A grouping of related metrics (Activity, Community, Maintenance, Documentation, Security) for organizational clarity, each with assigned weight for overall score calculation
+- **Health Score**: An aggregate score calculated as weighted average of category scores (Security 25%, Maintenance 25%, Community 20%, Activity 15%, Documentation 15%), displayed as numerical value (0-100), letter grade (A-F), and trend indicator
 
 ## Success Criteria *(mandatory)*
 

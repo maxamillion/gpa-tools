@@ -72,4 +72,84 @@ export class CacheManager {
       console.error('Failed to clear cache:', error);
     }
   }
+
+  /**
+   * Save custom criteria to localStorage (no TTL - persists until cleared)
+   * @param {Array} criteria - Array of custom criterion objects
+   */
+  saveCustomCriteria(criteria) {
+    try {
+      const key = this._getKey('custom-criteria');
+      localStorage.setItem(key, JSON.stringify(criteria));
+      return true;
+    } catch (error) {
+      console.error('Failed to save custom criteria:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Load custom criteria from localStorage
+   * @returns {Array} Array of custom criterion objects
+   */
+  loadCustomCriteria() {
+    try {
+      const key = this._getKey('custom-criteria');
+      const stored = localStorage.getItem(key);
+      if (!stored) return [];
+
+      return JSON.parse(stored);
+    } catch (error) {
+      console.error('Failed to load custom criteria:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Add a new custom criterion
+   * @param {Object} criterion - Custom criterion object
+   */
+  addCustomCriterion(criterion) {
+    const criteria = this.loadCustomCriteria();
+    criteria.push(criterion);
+    return this.saveCustomCriteria(criteria);
+  }
+
+  /**
+   * Update an existing custom criterion
+   * @param {string} criterionId - ID of criterion to update
+   * @param {Object} updates - Updates to apply
+   */
+  updateCustomCriterion(criterionId, updates) {
+    const criteria = this.loadCustomCriteria();
+    const index = criteria.findIndex(c => c.id === criterionId);
+
+    if (index === -1) {
+      console.warn(`Criterion with ID ${criterionId} not found`);
+      return false;
+    }
+
+    criteria[index] = { ...criteria[index], ...updates };
+    return this.saveCustomCriteria(criteria);
+  }
+
+  /**
+   * Delete a custom criterion
+   * @param {string} criterionId - ID of criterion to delete
+   */
+  deleteCustomCriterion(criterionId) {
+    const criteria = this.loadCustomCriteria();
+    const filtered = criteria.filter(c => c.id !== criterionId);
+    return this.saveCustomCriteria(filtered);
+  }
+
+  /**
+   * Get a specific custom criterion by ID
+   * @param {string} criterionId - ID of criterion
+   * @returns {Object|null} Criterion object or null if not found
+   */
+  getCustomCriterion(criterionId) {
+    const criteria = this.loadCustomCriteria();
+    return criteria.find(c => c.id === criterionId) || null;
+  }
 }

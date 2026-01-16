@@ -10,6 +10,82 @@ export class GitHubApiClient {
   constructor(token = null) {
     this.octokit = new Octokit(token ? { auth: token } : {});
     this.cache = new CacheManager('gpa');
+    this.etagCache = new Map(); // Store ETags for conditional requests
+    this.retryQueue = [];
+    this.maxRetryDelay = 60000; // 60 seconds max
+    this.baseRetryDelay = 1000; // 1 second base
+  }
+
+  /**
+   * Exponential backoff with jitter
+   * FR-034: Retry failed requests with exponential backoff (1s → 60s max)
+   */
+  async retryWithBackoff(fn, attempt = 0, maxAttempts = 5) {
+    try {
+      return await fn();
+    } catch (error) {
+      // Check if error is retryable (rate limit, network error, server error)
+      const isRetryable =
+        error.status === 429 || // Rate limit
+        error.status >= 500 || // Server error
+        error.code === 'ECONNRESET' || // Network error
+        error.code === 'ETIMEDOUT';
+
+      if (!isRetryable || attempt >= maxAttempts) {
+        throw error;
+      }
+
+      // Calculate delay with exponential backoff and jitter
+      const exponentialDelay = Math.min(
+        this.baseRetryDelay * Math.pow(2, attempt),
+        this.maxRetryDelay
+      );
+      const jitter = Math.random() * 0.3 * exponentialDelay; // 0-30% jitter
+      const delay = exponentialDelay + jitter;
+
+      // Wait before retrying
+      await new Promise((resolve) => setTimeout(resolve, delay));
+
+      // Retry with incremented attempt
+      return this.retryWithBackoff(fn, attempt + 1, maxAttempts);
+    }
+  }
+
+  /**
+   * Make request with ETag support for conditional requests
+   * Reduces API calls by checking If-None-Match header
+   */
+  async requestWithETag(endpoint, params) {
+    const cacheKey = JSON.stringify({ endpoint, params });
+    const cachedETag = this.etagCache.get(cacheKey);
+
+    const headers = {};
+    if (cachedETag) {
+      headers['If-None-Match'] = cachedETag;
+    }
+
+    try {
+      const response = await this.octokit.request(endpoint, {
+        ...params,
+        headers,
+      });
+
+      // Store new ETag if present
+      if (response.headers.etag) {
+        this.etagCache.set(cacheKey, response.headers.etag);
+      }
+
+      return response;
+    } catch (error) {
+      // 304 Not Modified - return cached data
+      if (error.status === 304) {
+        const cached = this.cache.get(cacheKey);
+        if (cached) {
+          return { data: cached, fromCache: true };
+        }
+      }
+      throw error;
+    }
   }
 
   parseRepoUrl(url) {
@@ -40,7 +116,11 @@ export class GitHubApiClient {
     const cached = this.cache.get(cacheKey);
     if (cached) return cached;
 
-    const { data } = await this.octokit.repos.get({ owner, repo });
+    const data = await this.retryWithBackoff(async () => {
+      const response = await this.octokit.repos.get({ owner, repo });
+      return response.data;
+    });
+
     this.cache.set(cacheKey, data);
     return data;
   }
@@ -50,11 +130,15 @@ export class GitHubApiClient {
     const cached = this.cache.get(cacheKey);
     if (cached) return cached;
 
-    const { data } = await this.octokit.repos.listContributors({
-      owner,
-      repo,
-      per_page: 100,
+    const data = await this.retryWithBackoff(async () => {
+      const response = await this.octokit.repos.listContributors({
+        owner,
+        repo,
+        per_page: 100,
+      });
+      return response.data;
     });
+
     this.cache.set(cacheKey, data);
     return data;
   }
@@ -67,7 +151,11 @@ export class GitHubApiClient {
     const params = { owner, repo, per_page: 100 };
     if (since) params.since = since;
 
-    const { data } = await this.octokit.repos.listCommits(params);
+    const data = await this.retryWithBackoff(async () => {
+      const response = await this.octokit.repos.listCommits(params);
+      return response.data;
+    });
+
     this.cache.set(cacheKey, data);
     return data;
   }

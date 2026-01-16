@@ -1,431 +1,465 @@
-# Tasks: Open Source Project Health Analyzer
+# Implementation Tasks: Open Source Project Health Analyzer
 
-**Input**: Design documents from `/specs/001-project-health-analyzer/`
-**Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md, contracts/
+**Feature Branch**: `001-project-health-analyzer`
+**Created**: 2026-01-16
+**Status**: Ready for Implementation
+**Spec**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md) | **Data Model**: [data-model.md](./data-model.md)
 
-**Tests**: Tests are REQUIRED per constitution (TDD is non-negotiable)
+## Overview
 
-**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+This document provides dependency-ordered implementation tasks following Test-Driven Development (TDD) principles. Tasks are organized by user story to enable independent implementation and testing.
 
-## Format: `[ID] [P?] [Story] Description`
-
-- **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
-- Include exact file paths in descriptions
-
-## Path Conventions
-
-- **Single project**: `src/`, `tests/` at repository root
-- Paths shown below use single project structure from plan.md
+**Total Tasks**: 98
+**Estimated MVP (User Story 1)**: 66 tasks
+**Constitution Compliance**: TDD mandatory, WCAG 2.1 AA required, 80% test coverage target
 
 ---
 
-## Phase 1: Setup (Shared Infrastructure)
+## Task Organization
 
-**Purpose**: Project initialization and basic structure
+- **Phase 1**: Setup & Infrastructure (T001-T015) - 15 tasks
+- **Phase 2**: Foundational Components (T016-T024) - 9 tasks
+- **Phase 3**: User Story 1 - Core Evaluation (T025-T066) - 42 tasks ⭐ **MVP**
+- **Phase 4**: User Story 2 - Custom Criteria (T067-T079) - 13 tasks
+- **Phase 5**: User Story 4 - Metric Education (T080-T085) - 6 tasks
+- **Phase 6**: User Story 3 - Project Comparison (T086-T091) - 6 tasks
+- **Phase 7**: Polish & Cross-Cutting (T092-T098) - 7 tasks
 
-- [ ] T001 Initialize Node.js project with package.json and npm configuration
-- [ ] T002 Install Vite as build tool and dev server with configuration
-- [ ] T003 [P] Install Vitest for unit/integration testing with configuration in vitest.config.js
-- [ ] T004 [P] Install Playwright for E2E testing with configuration in playwright.config.js
-- [ ] T005 [P] Install ESLint with complexity rules (max 10) in .eslintrc.js
-- [ ] T006 [P] Install Prettier for code formatting in .prettierrc.js
-- [ ] T007 [P] Install Octokit.js for GitHub API client interactions
-- [ ] T008 [P] Create project directory structure (src/, tests/, docs/, public/, .github/)
-- [ ] T009 [P] Create base HTML entry point in src/index.html with semantic structure
-- [ ] T010 [P] Create main CSS file in src/styles/main.css with CSS custom properties
-- [ ] T011 [P] Create main JavaScript entry point in src/main.js
-- [ ] T012 [P] Configure GitHub Actions CI workflow in .github/workflows/ci.yml (lint, test, build)
-- [ ] T013 [P] Configure GitHub Actions deploy workflow in .github/workflows/deploy.yml (GitHub Pages)
-- [ ] T014 [P] Create README.md with setup instructions and architecture overview
-- [ ] T015 [P] Create .gitignore with node_modules, dist, .env exclusions
+**Parallel Execution Opportunities**: 42 tasks marked with [P]
 
 ---
 
-## Phase 2: Foundational (Blocking Prerequisites)
+## Phase 1: Setup & Infrastructure
 
-**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
+**Goal**: Initialize project with all necessary tooling, configuration, and development environment.
 
-**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+**Success Criteria**:
+- All dependencies installed and configured
+- Linting and type checking pass on empty project
+- Build and test commands execute successfully
+- Development server runs without errors
 
-- [ ] T016 Create metric definitions configuration in src/config/metricDefinitions.js with all 18 baseline metrics
-- [ ] T017 [P] Create scoring thresholds configuration in src/config/thresholds.js
-- [ ] T018 [P] Write unit tests for Repository model validation in tests/unit/Repository.test.js
-- [ ] T019 [P] Create Repository model in src/models/Repository.js with validation
-- [ ] T020 [P] Write unit tests for Metric model validation in tests/unit/Metric.test.js
-- [ ] T021 [P] Create Metric model in src/models/Metric.js with validation
-- [ ] T022 [P] Write unit tests for MetricCategory enum in tests/unit/MetricCategory.test.js
-- [ ] T023 [P] Create MetricCategory enum/constants in src/models/MetricCategory.js
-- [ ] T024 [P] Write unit tests for GitHub API client error handling in tests/unit/githubApi.test.js
-- [ ] T025 Create GitHub API service in src/services/githubApi.js with rate limiting and error handling
-- [ ] T026 [P] Write integration tests for GitHub API mocking in tests/integration/githubApi.test.js using MSW
-- [ ] T027 [P] Write unit tests for cache manager in tests/unit/cacheManager.test.js
-- [ ] T028 Create cache manager service in src/services/cacheManager.js with localStorage and TTL
-- [ ] T029 [P] Write unit tests for URL parameter utilities in tests/unit/urlParams.test.js
-- [ ] T030 Create URL parameter utility in src/utils/urlParams.js for sharing functionality
-- [ ] T031 [P] Write unit tests for scoring algorithms in tests/unit/scoring.test.js
-- [ ] T032 Create scoring utility in src/utils/scoring.js with all threshold logic
-- [ ] T033 [P] Write unit tests for data formatters in tests/unit/formatters.test.js
-- [ ] T034 Create data formatter utility in src/utils/formatters.js
+### Tasks
 
-**Checkpoint**: Foundation ready - user story implementation can now begin in parallel
+- [X] T001 Initialize npm project with package.json in repository root
+- [X] T002 Install core dependencies: @octokit/rest, chart.js in repository root
+- [X] T003 Install dev dependencies: vite, vitest, playwright, @vitest/ui, msw, @axe-core/playwright in repository root
+- [X] T004 Install linting tools: eslint, prettier, eslint-config-prettier in repository root
+- [X] T005 Create vite.config.js with build configuration (minification, code splitting, bundle analysis)
+- [X] T006 Create vitest.config.js with test configuration (coverage thresholds ≥80%, jsdom environment)
+- [X] T007 Create playwright.config.js with E2E test configuration (multi-browser, accessibility, retries)
+- [X] T008 Create .eslintrc.js with code quality rules (cyclomatic complexity ≤10, max function length 50)
+- [X] T009 Create .prettierrc with formatting rules
+- [X] T010 Create public/index.html with semantic HTML structure, WCAG 2.1 AA compliance, skip links
+- [X] T011 Create src/main.js application entry point with event bus initialization
+- [X] T012 Create src/styles/main.css with CSS reset, design tokens, responsive breakpoints
+- [X] T013 Create tests/setup.js with MSW server configuration and test utilities
+- [X] T014 Create tests/mocks/handlers.js with GitHub API mock handlers
+- [X] T015 Configure npm scripts: dev, build, test, test:e2e, lint, format
 
----
-
-## Phase 3: User Story 1 - Evaluate Project Health with Standard Metrics (Priority: P1) 🎯 MVP
-
-**Goal**: Users can enter a GitHub repository URL and view a comprehensive health report with all 18 baseline metrics
-
-**Independent Test**: Enter "https://github.com/facebook/react" → See health report with all baseline metrics, scores, and explanations
-
-### Tests for User Story 1 (TDD - Write First) ⚠️
-
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
-
-- [ ] T035 [P] [US1] Write E2E test for repository URL input and validation in tests/e2e/evaluate-project.spec.js
-- [ ] T036 [P] [US1] Write E2E test for displaying baseline metrics report in tests/e2e/evaluate-project.spec.js
-- [ ] T037 [P] [US1] Write E2E test for error handling (invalid URL, 404) in tests/e2e/evaluate-project.spec.js
-- [ ] T038 [P] [US1] Write E2E test for loading indicators during fetch in tests/e2e/evaluate-project.spec.js
-- [ ] T039 [P] [US1] Write unit tests for commit frequency calculation in tests/unit/metricCalculator.test.js
-- [ ] T040 [P] [US1] Write unit tests for release cadence calculation in tests/unit/metricCalculator.test.js
-- [ ] T041 [P] [US1] Write unit tests for last activity calculation in tests/unit/metricCalculator.test.js
-- [ ] T042 [P] [US1] Write unit tests for contributor count calculation in tests/unit/metricCalculator.test.js
-- [ ] T043 [P] [US1] Write unit tests for new contributors calculation in tests/unit/metricCalculator.test.js
-- [ ] T044 [P] [US1] Write unit tests for PR merge rate calculation in tests/unit/metricCalculator.test.js
-- [ ] T045 [P] [US1] Write unit tests for open issues ratio calculation in tests/unit/metricCalculator.test.js
-- [ ] T046 [P] [US1] Write unit tests for issue response time calculation in tests/unit/metricCalculator.test.js
-- [ ] T047 [P] [US1] Write unit tests for stale issues percentage calculation in tests/unit/metricCalculator.test.js
-- [ ] T048 [P] [US1] Write unit tests for average time to close calculation in tests/unit/metricCalculator.test.js
-- [ ] T049 [P] [US1] Write unit tests for README quality score calculation in tests/unit/metricCalculator.test.js
-- [ ] T050 [P] [US1] Write unit tests for documentation directory check in tests/unit/metricCalculator.test.js
-- [ ] T051 [P] [US1] Write unit tests for wiki presence check in tests/unit/metricCalculator.test.js
-- [ ] T052 [P] [US1] Write unit tests for security policy check in tests/unit/metricCalculator.test.js
-- [ ] T053 [P] [US1] Write unit tests for code of conduct check in tests/unit/metricCalculator.test.js
-- [ ] T054 [P] [US1] Write unit tests for contributing guidelines check in tests/unit/metricCalculator.test.js
-- [ ] T055 [P] [US1] Write unit tests for license check in tests/unit/metricCalculator.test.js
-- [ ] T056 [P] [US1] Write unit tests for bus factor calculation in tests/unit/metricCalculator.test.js
-- [ ] T057 [P] [US1] Write unit tests for overall health score calculation in tests/unit/metricCalculator.test.js
-- [ ] T058 [P] [US1] Write contract tests for GitHub API response schemas in tests/integration/github-api-contracts.test.js
-
-### Implementation for User Story 1
-
-- [ ] T059 [US1] Implement metric calculator service in src/services/metricCalculator.js with all 18 metric calculations (depends on T035-T058)
-- [ ] T060 [P] [US1] Create HealthScore model in src/models/HealthScore.js with weighted average logic
-- [ ] T061 [P] [US1] Create EvaluationProfile model in src/models/EvaluationProfile.js
-- [ ] T062 [US1] Create MetricDisplay web component in src/components/MetricDisplay.js with semantic HTML and ARIA
-- [ ] T063 [US1] Create MetricCategory web component in src/components/MetricCategory.js for grouping metrics
-- [ ] T064 [US1] Create HealthScore web component in src/components/HealthScore.js for overall score display
-- [ ] T065 [US1] Create repository input form web component in src/components/RepositoryInput.js with validation
-- [ ] T066 [US1] Create loading indicator web component in src/components/LoadingIndicator.js
-- [ ] T067 [US1] Create error message web component in src/components/ErrorMessage.js with accessible alerts
-- [ ] T068 [US1] Implement main application controller in src/main.js connecting all components for US1
-- [ ] T069 [US1] Add CSS styles for metric display in src/styles/components.css
-- [ ] T070 [US1] Implement keyboard navigation and focus management for accessibility
-- [ ] T071 [US1] Add ARIA live regions for dynamic content updates
-- [ ] T072 [US1] Test with screen readers (NVDA/VoiceOver) and fix accessibility issues
-
-**Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
+**Validation**: Run `npm run lint && npm run test && npm run build` - all should pass with zero errors.
 
 ---
 
-## Phase 4: User Story 4 - Understand Metric Meanings and Thresholds (Priority: P2)
+## Phase 2: Foundational Components
 
-**Goal**: Users can understand what each metric means, why it matters, and scoring thresholds without external documentation
+**Goal**: Implement core data models, utilities, and services that all user stories depend on.
 
-**Independent Test**: Hover/click on any metric → See tooltip with explanation, why it matters, and threshold ranges
+**Success Criteria**:
+- All models have validation logic and pass unit tests
+- CacheManager works with TTL and LRU eviction
+- EventBus enables component communication
+- No dependencies on incomplete user stories
 
-**Note**: Implementing US4 before US2 because it enhances US1 and is simpler than custom criteria
+### Tasks
 
-### Tests for User Story 4 (TDD - Write First) ⚠️
+- [X] T016 [P] Write unit tests for Repository model in tests/unit/models/Repository.test.js
+- [X] T017 [P] Implement Repository model class in src/models/Repository.js with validation (owner, name, isPrivate check)
+- [X] T018 [P] Write unit tests for Metric model in tests/unit/models/Metric.test.js
+- [X] T019 [P] Implement Metric model class in src/models/Metric.js with scoreToGrade, formatValue methods
+- [X] T020 [P] Write unit tests for HealthScore model in tests/unit/models/HealthScore.test.js
+- [X] T021 [P] Implement HealthScore model class in src/models/HealthScore.js with calculateOverall method (FR-016 weighted scoring)
+- [X] T022 [P] Write unit tests for CacheManager in tests/unit/services/CacheManager.test.js (TTL, LRU eviction)
+- [X] T023 [P] Implement CacheManager class in src/services/CacheManager.js with set, get, evictLRU, getCacheAge methods (FR-028, FR-035)
+- [X] T024 [P] Implement EventBus utility in src/utils/eventBus.js for component communication
 
-- [ ] T073 [P] [US4] Write E2E test for metric tooltip display on hover in tests/e2e/metric-help.spec.js
-- [ ] T074 [P] [US4] Write E2E test for metric threshold indicators in tests/e2e/metric-help.spec.js
-- [ ] T075 [P] [US4] Write E2E test for external documentation links in tests/e2e/metric-help.spec.js
-- [ ] T076 [P] [US4] Write E2E test for keyboard accessibility of help tooltips in tests/e2e/metric-help.spec.js
-- [ ] T077 [P] [US4] Write unit tests for help tooltip content generation in tests/unit/HelpTooltip.test.js
-
-### Implementation for User Story 4
-
-- [ ] T078 [P] [US4] Create help content data in src/config/helpContent.js with all metric explanations
-- [ ] T079 [US4] Create HelpTooltip web component in src/components/HelpTooltip.js with accessible patterns (depends on T073-T077)
-- [ ] T080 [US4] Create ThresholdIndicator web component in src/components/ThresholdIndicator.js
-- [ ] T081 [US4] Integrate HelpTooltip into MetricDisplay component with keyboard triggers
-- [ ] T082 [US4] Add external documentation links to CHAOSS and Linux Foundation resources
-- [ ] T083 [US4] Add CSS styles for tooltips and threshold indicators in src/styles/components.css
-- [ ] T084 [US4] Test tooltip accessibility with keyboard-only navigation
-- [ ] T085 [US4] Verify all 18 metrics have complete help content and examples
-
-**Checkpoint**: User Story 4 complete - Users can now understand all metrics without leaving the app
+**Validation**: Run `npm test tests/unit/models tests/unit/services/CacheManager.test.js` - all tests pass, ≥80% coverage.
 
 ---
 
-## Phase 5: User Story 2 - Add Custom Evaluation Criteria (Priority: P2)
+## Phase 3: User Story 1 - Evaluate Project Health with Standard Metrics (P1) ⭐ **MVP**
 
-**Goal**: Users can define and evaluate custom criteria (TypeScript usage, security practices, etc.) alongside baseline metrics
+**User Story**: A developer wants to quickly assess overall health of an open source project using industry-standard metrics before deciding whether to adopt, contribute to, or depend on it.
 
-**Independent Test**: After viewing baseline metrics, add custom criteria "Uses TypeScript" → See evaluation result with evidence
+**Goal**: Complete end-to-end evaluation workflow from URL input to health report display.
 
-### Tests for User Story 2 (TDD - Write First) ⚠️
+**Independent Test Criteria**:
+- ✅ User can enter "https://github.com/facebook/react" and see health report within 10 seconds
+- ✅ All 18 baseline metrics displayed with scores, explanations, and categories
+- ✅ Invalid/private repository URLs show clear error messages
+- ✅ Loading indicators appear for operations >2 seconds
+- ✅ WCAG 2.1 AA compliance verified via axe-core
 
-- [ ] T086 [P] [US2] Write E2E test for adding custom criterion in tests/e2e/custom-criteria.spec.js
-- [ ] T087 [P] [US2] Write E2E test for evaluating custom criteria automatically in tests/e2e/custom-criteria.spec.js
-- [ ] T088 [P] [US2] Write E2E test for editing/deleting custom criteria in tests/e2e/custom-criteria.spec.js
-- [ ] T089 [P] [US2] Write E2E test for persisting custom criteria in localStorage in tests/e2e/custom-criteria.spec.js
-- [ ] T090 [P] [US2] Write unit tests for CustomCriterion model validation in tests/unit/CustomCriterion.test.js
-- [ ] T091 [P] [US2] Write unit tests for TypeScript detection evaluator in tests/unit/criteriaEvaluator.test.js
-- [ ] T092 [P] [US2] Write unit tests for file existence evaluator in tests/unit/criteriaEvaluator.test.js
-- [ ] T093 [P] [US2] Write unit tests for dependency scanning evaluator in tests/unit/criteriaEvaluator.test.js
-- [ ] T094 [P] [US2] Write unit tests for confidence level assignment in tests/unit/criteriaEvaluator.test.js
+### GitHub API Integration (US1)
 
-### Implementation for User Story 2
+- [X] T025 [P] [US1] Write unit tests for GitHubApiClient in tests/unit/services/GitHubApiClient.test.js (mocked with MSW)
+- [X] T026 [US1] Implement GitHubApiClient class in src/services/GitHubApiClient.js with fetchRepository, fetchCommits, fetchContributors methods (FR-027)
+- [X] T027 [P] [US1] Write integration tests for GitHub API rate limiting in tests/integration/api-integration.test.js (MSW mock)
+- [X] T028 [US1] Implement exponential backoff logic in GitHubApiClient with retry queue (1s → 60s max, FR-034)
+- [X] T029 [P] [US1] Write integration tests for ETag conditional requests in tests/integration/api-integration.test.js
+- [X] T030 [US1] Implement ETag caching in GitHubApiClient for conditional requests (reduce API calls)
 
-- [ ] T095 [P] [US2] Create CustomCriterion model in src/models/CustomCriterion.js with validation (depends on T090)
-- [ ] T096 [US2] Implement criteria evaluator service in src/services/criteriaEvaluator.js with automatic evaluation logic (depends on T091-T094)
-- [ ] T097 [US2] Create CustomCriteriaForm web component in src/components/CustomCriteriaForm.js
-- [ ] T098 [US2] Create CustomCriteriaDisplay web component in src/components/CustomCriteriaDisplay.js
-- [ ] T099 [US2] Integrate custom criteria into EvaluationProfile model
-- [ ] T100 [US2] Implement custom criteria persistence in cacheManager service
-- [ ] T101 [US2] Add custom criteria to main application flow in src/main.js
-- [ ] T102 [US2] Add CSS styles for custom criteria components in src/styles/components.css
-- [ ] T103 [US2] Implement keyboard navigation for custom criteria form
-- [ ] T104 [US2] Add ARIA labels and live regions for custom criteria results
+### Metric Calculation Services (US1)
 
-**Checkpoint**: User Story 2 complete - Users can now add and evaluate custom criteria
+- [X] T031 [P] [US1] Write unit tests for MetricCalculator activity metrics in tests/unit/services/MetricCalculator.test.js (commitFrequency, releaseCadence, timeSinceLastCommit)
+- [X] T032 [P] [US1] Implement MetricCalculator.calculateActivityMetrics in src/services/MetricCalculator.js (FR-001, FR-005)
+- [X] T033 [P] [US1] Write unit tests for MetricCalculator community metrics in tests/unit/services/MetricCalculator.test.js (contributorCount, issueResponseTime, prMergeRate, busFactor)
+- [X] T034 [P] [US1] Implement MetricCalculator.calculateCommunityMetrics in src/services/MetricCalculator.js (FR-002, FR-006, FR-007)
+- [X] T035 [P] [US1] Write unit tests for MetricCalculator maintenance metrics in tests/unit/services/MetricCalculator.test.js (openClosedIssueRatio, staleIssuePercentage, avgTimeToCloseIssues)
+- [X] T036 [P] [US1] Implement MetricCalculator.calculateMaintenanceMetrics in src/services/MetricCalculator.js (FR-003)
+- [X] T037 [P] [US1] Write unit tests for MetricCalculator documentation metrics in tests/unit/services/MetricCalculator.test.js (hasReadme, hasContributing, hasCodeOfConduct, documentationCoverage)
+- [X] T038 [P] [US1] Implement MetricCalculator.calculateDocumentationMetrics in src/services/MetricCalculator.js (FR-004)
+- [X] T039 [P] [US1] Write unit tests for MetricCalculator security metrics in tests/unit/services/MetricCalculator.test.js (hasSecurityPolicy, hasDependabot, vulnerabilityCount, licensePresence)
+- [X] T040 [P] [US1] Implement MetricCalculator.calculateSecurityMetrics in src/services/MetricCalculator.js (FR-008)
+- [X] T041 [P] [US1] Write unit tests for missing data handling (N/A metrics, FR-037) in tests/unit/services/MetricCalculator.test.js
+- [X] T042 [US1] Implement missing data handling in MetricCalculator - return null score, "N/A" grade, unavailableReason (FR-037)
+
+### Evaluation Orchestration (US1)
+
+- [X] T043 [P] [US1] Write unit tests for EvaluationOrchestrator in tests/unit/services/EvaluationOrchestrator.test.js
+- [X] T044 [US1] Implement EvaluationOrchestrator class in src/services/EvaluationOrchestrator.js with evaluateRepository method
+- [X] T045 [US1] Implement parallel category fetching in EvaluationOrchestrator (5 API calls in parallel, progressive loading)
+- [X] T046 [US1] Implement cache integration in EvaluationOrchestrator (check cache, fetch if miss, store with 24h TTL - FR-028)
+
+### UI Components (US1)
+
+- [X] T047 [P] [US1] Write unit tests for RepositoryInput component in tests/unit/components/RepositoryInput.test.js
+- [X] T048 [US1] Implement RepositoryInput Web Component in src/components/RepositoryInput.js (Light DOM, WCAG 2.1 AA, keyboard navigation)
+- [X] T049 [US1] Add URL validation to RepositoryInput (GitHub URL format, error message for invalid URLs - FR-023, FR-036)
+- [X] T050 [P] [US1] Write unit tests for LoadingSpinner component in tests/unit/components/LoadingSpinner.test.js
+- [X] T051 [US1] Implement LoadingSpinner Web Component in src/components/LoadingSpinner.js (Shadow DOM, ARIA live region)
+- [X] T052 [P] [US1] Write unit tests for ErrorDisplay component in tests/unit/components/ErrorDisplay.test.js
+- [X] T053 [US1] Implement ErrorDisplay Web Component in src/components/ErrorDisplay.js (private repo error, 404 error, rate limit error - FR-023, FR-036)
+- [X] T054 [P] [US1] Write unit tests for MetricCard component in tests/unit/components/MetricCard.test.js
+- [X] T055 [US1] Implement MetricCard Web Component in src/components/MetricCard.js (score, grade, explanation, ARIA labels - FR-018, FR-020, FR-021)
+- [X] T056 [P] [US1] Write unit tests for CategorySection component in tests/unit/components/CategorySection.test.js
+- [X] T057 [US1] Implement CategorySection Web Component in src/components/CategorySection.js (groups metrics by category - FR-017)
+- [X] T058 [P] [US1] Write unit tests for HealthScoreCard component in tests/unit/components/HealthScoreCard.test.js
+- [X] T059 [US1] Implement HealthScoreCard Web Component in src/components/HealthScoreCard.js (overall score, weighted average, cache age indicator - FR-016, FR-035)
+- [X] T060 [US1] Wire RepositoryInput to EvaluationOrchestrator in src/main.js (URL submit → evaluation → display)
+- [X] T061 [US1] Add loading states and progressive metric display in src/main.js (show results as categories complete)
+- [X] T062 [US1] Add error handling and display in src/main.js (API errors, private repos, invalid URLs)
+
+### End-to-End Testing (US1)
+
+- [X] T063 [US1] Write E2E test for successful evaluation workflow in tests/e2e/evaluate-repository.spec.js (enter URL → see health report)
+- [X] T064 [US1] Write E2E test for invalid repository error in tests/e2e/evaluate-repository.spec.js (404, private repo)
+- [X] T065 [US1] Write E2E test for loading indicators in tests/e2e/evaluate-repository.spec.js (spinner, progress feedback)
+- [X] T066 [US1] Write E2E accessibility test with axe-core in tests/e2e/accessibility.spec.js (WCAG 2.1 AA compliance - no violations)
+
+**US1 Validation**:
+- Run `npm test` - all US1 tests pass, ≥80% coverage
+- Run `npm run test:e2e` - all US1 E2E tests pass
+- Manual test: Enter facebook/react URL → see health report within 10 seconds
 
 ---
 
-## Phase 6: User Story 3 - Compare Projects Side-by-Side (Priority: P3)
+## Phase 4: User Story 2 - Add Custom Evaluation Criteria (P2)
 
-**Goal**: Users can evaluate multiple projects simultaneously with aligned metrics for comparison
+**User Story**: A user wants to evaluate a project based on specific criteria important to their use case in addition to standard health metrics.
 
-**Independent Test**: Evaluate "facebook/react" and "vuejs/vue" → See side-by-side comparison highlighting differences
+**Goal**: Enable users to define, evaluate, and persist custom criteria.
 
-### Tests for User Story 3 (TDD - Write First) ⚠️
+**Independent Test Criteria**:
+- ✅ User can add custom criterion "Has TypeScript" and see evaluation result
+- ✅ Multiple criteria can be added and evaluated simultaneously
+- ✅ Custom criteria persist across browser sessions (localStorage)
+- ✅ User can edit/delete individual criteria without losing others
 
-- [ ] T105 [P] [US3] Write E2E test for adding second project for comparison in tests/e2e/comparison.spec.js
-- [ ] T106 [P] [US3] Write E2E test for side-by-side metric alignment in tests/e2e/comparison.spec.js
-- [ ] T107 [P] [US3] Write E2E test for visual difference highlighting in tests/e2e/comparison.spec.js
-- [ ] T108 [P] [US3] Write E2E test for exporting comparison results in tests/e2e/comparison.spec.js
-- [ ] T109 [P] [US3] Write E2E test for sharing comparison via URL in tests/e2e/comparison.spec.js
-- [ ] T110 [P] [US3] Write unit tests for comparison data structure in tests/unit/ComparisonModel.test.js
+### Custom Criteria Models & Services (US2)
 
-### Implementation for User Story 3
+- [X] T067 [P] [US2] Write unit tests for CustomCriterion model in tests/unit/models/CustomCriterion.test.js
+- [X] T068 [US2] Implement CustomCriterion model class in src/models/CustomCriterion.js with validate, evaluate methods (FR-009 to FR-015)
+- [X] T069 [P] [US2] Write unit tests for EvaluationProfile model in tests/unit/models/EvaluationProfile.test.js
+- [X] T070 [US2] Implement EvaluationProfile model class in src/models/EvaluationProfile.js with serialize, deserialize, generateShareableUrl methods (FR-030, FR-032, FR-033)
+- [X] T071 [P] [US2] Write unit tests for custom criterion automatic evaluation in tests/unit/services/CriterionEvaluator.test.js
+- [X] T072 [US2] Implement automatic evaluation logic for technology/file-based criteria in src/services/CriterionEvaluator.js (check dependencies, file existence - FR-013)
 
-- [ ] T111 [P] [US3] Create Comparison model in src/models/Comparison.js (depends on T110)
-- [ ] T112 [US3] Create ComparisonView web component in src/components/ComparisonView.js with accessible table
-- [ ] T113 [US3] Implement comparison mode in main application controller in src/main.js
-- [ ] T114 [US3] Implement visual difference highlighting logic in ComparisonView component
-- [ ] T115 [US3] Add export to JSON functionality in src/utils/exporters.js
-- [ ] T116 [US3] Add export to CSV functionality in src/utils/exporters.js
-- [ ] T117 [US3] Implement comparison URL parameter encoding in urlParams utility
-- [ ] T118 [US3] Add CSS styles for comparison view in src/styles/components.css
-- [ ] T119 [US3] Implement responsive design for comparison table (mobile scrolling)
-- [ ] T120 [US3] Test keyboard navigation in comparison view
-- [ ] T121 [US3] Add ARIA labels for comparison table headers and cells
+### Custom Criteria UI (US2)
 
-**Checkpoint**: All user stories complete - Full feature set implemented
+- [X] T073 [P] [US2] Write unit tests for CustomCriteriaForm component in tests/unit/components/CustomCriteriaForm.test.js
+- [X] T074 [US2] Implement CustomCriteriaForm Web Component in src/components/CustomCriteriaForm.js (add/edit/delete criteria, WCAG 2.1 AA)
+- [X] T075 [US2] Add criterion evaluation display to MetricCard component (confidence level, evidence - FR-015)
+- [X] T076 [US2] Implement localStorage persistence for custom criteria in src/services/CacheManager.js (persist until user clears data - FR-032)
+- [X] T077 [US2] Wire CustomCriteriaForm to EvaluationOrchestrator in src/main.js (evaluate criteria alongside baseline metrics)
+
+### End-to-End Testing (US2)
+
+- [X] T078 [US2] Write E2E test for adding custom criteria in tests/e2e/custom-criteria.spec.js
+- [X] T079 [US2] Write E2E test for criteria persistence in tests/e2e/custom-criteria.spec.js (page reload)
+
+**US2 Validation**:
+- Add criterion "Has TypeScript" → see automatic evaluation result
+- Reload page → custom criteria still present
+
+---
+
+## Phase 5: User Story 4 - Understand Metric Meanings and Thresholds (P2)
+
+**User Story**: A user who is not familiar with open source health metrics wants to understand what each metric means, why it matters, and what constitutes a "good" vs "poor" score.
+
+**Goal**: Provide educational tooltips, metric explanations, and threshold visualizations.
+
+**Independent Test Criteria**:
+- ✅ Hover over metric → see tooltip with explanation and importance
+- ✅ Click metric → see modal with detailed explanation, thresholds, examples
+- ✅ Links to authoritative resources (CHAOSS) provided
+- ✅ Threshold ranges (poor/fair/good/excellent) clearly visualized
+
+### Educational UI Components (US4)
+
+- [X] T080 [P] [US4] Write unit tests for MetricTooltip component in tests/unit/components/MetricTooltip.test.js
+- [X] T081 [US4] Implement MetricTooltip Web Component in src/components/MetricTooltip.js (hover → explanation, why it matters - FR-021)
+- [X] T082 [P] [US4] Write unit tests for MetricDetailModal component in tests/unit/components/MetricDetailModal.test.js
+- [X] T083 [US4] Implement MetricDetailModal Web Component in src/components/MetricDetailModal.js (click → full explanation, thresholds, examples, CHAOSS links)
+- [X] T084 [US4] Add threshold visualization to MetricCard component (color-coded ranges, labels for poor/fair/good/excellent)
+- [X] T085 [US4] Wire MetricCard to MetricDetailModal in src/main.js (click metric → open modal)
+
+**US4 Validation**:
+- Hover over "Commit Frequency" → see tooltip
+- Click "Commit Frequency" → see detailed modal with CHAOSS link
+
+---
+
+## Phase 6: User Story 3 - Compare Projects Side-by-Side (P3)
+
+**User Story**: A user wants to evaluate and compare multiple projects simultaneously to make an informed choice between competing alternatives.
+
+**Goal**: Enable multi-project comparison with aligned metrics and visual highlighting.
+
+**Independent Test Criteria**:
+- ✅ Evaluate facebook/react and vuejs/vue → see side-by-side comparison
+- ✅ Metrics aligned for easy comparison
+- ✅ Significant differences visually highlighted
+- ✅ Comparison shareable via URL
+
+### Comparison UI & Services (US3)
+
+- [X] T086 [P] [US3] Write unit tests for ComparisonTable component in tests/unit/components/ComparisonTable.test.js
+- [X] T087 [US3] Implement ComparisonTable Web Component in src/components/ComparisonTable.js (side-by-side metrics, difference highlighting)
+- [X] T088 [US3] Implement multi-evaluation state management in src/main.js (store multiple EvaluationProfiles)
+- [X] T089 [US3] Add comparison URL generation in EvaluationProfile model (encode multiple repos in URL params - FR-033)
+- [X] T090 [US3] Wire "Add to Comparison" button to ComparisonTable in src/main.js
+- [X] T091 [US3] Implement export functionality for comparisons in src/utils/export.js (JSON/CSV export - FR-031)
+
+**US3 Validation**:
+- Evaluate facebook/react → click "Add to Comparison"
+- Evaluate vuejs/vue → see comparison table
+- Differences visually highlighted
 
 ---
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-**Purpose**: Improvements that affect multiple user stories
+**Goal**: Final polish, performance optimization, and production readiness.
 
-- [ ] T122 [P] Create architecture documentation in docs/architecture.md
-- [ ] T123 [P] Create metrics guide documentation in docs/metrics-guide.md with all 18 metrics explained
-- [ ] T124 [P] Write ADR for vanilla JS vs framework decision in docs/adr/001-vanilla-js-vs-framework.md
-- [ ] T125 [P] Write ADR for GitHub API authentication strategy in docs/adr/002-github-api-authentication.md
-- [ ] T126 [P] Write ADR for caching strategy in docs/adr/003-caching-strategy.md
-- [ ] T127 [P] Optimize bundle size (code splitting, tree shaking, minification)
-- [ ] T128 [P] Implement service worker for offline support in src/service-worker.js
-- [ ] T129 [P] Add performance regression tests in CI/CD for bundle size and TTI
-- [ ] T130 [P] Add Lighthouse CI integration in .github/workflows/ci.yml
-- [ ] T131 [P] Create favicon and app icons in public/assets/
-- [ ] T132 [P] Implement mobile-responsive design testing across viewports
-- [ ] T133 [P] Add meta tags for SEO and social sharing in src/index.html
-- [ ] T134 [P] Create GitHub Pages deployment preview environment
-- [ ] T135 Run full accessibility audit with axe-core and fix issues
-- [ ] T136 Run cross-browser testing (Chrome, Firefox, Safari, Edge) with Playwright
-- [ ] T137 Verify ≥80% unit test coverage with coverage reports
-- [ ] T138 Run performance profiling and optimize bottlenecks
-- [ ] T139 Update README.md with usage examples and screenshots
-- [ ] T140 Run quickstart.md validation (verify all commands work)
+### Tasks
+
+- [X] T092 [P] Implement Chart.js lazy loading for trend visualization in src/components/MetricChart.js (dynamic import, <60KB)
+- [X] T093 [P] Add CSS component styles in src/styles/components.css (mobile-first, responsive, WCAG contrast)
+- [X] T094 Run bundle size analysis with rollup-plugin-visualizer and verify <500KB initial bundle (FR-025)
+- [ ] T095 Run Lighthouse performance audit and verify TTI <3s, LCP <2.5s (FR-026, performance budget)
+- [ ] T096 Run full accessibility audit with axe-core across all pages (WCAG 2.1 AA - zero violations)
+- [X] T097 Add GitHub Pages deployment configuration in vite.config.js (base path, static assets)
+- [ ] T098 Create production build and test on GitHub Pages (smoke test - verify static hosting works - FR-024, FR-025)
+
+**Validation**:
+- Bundle <500KB gzipped
+- Lighthouse score: Performance >90, Accessibility 100
+- Zero axe-core violations
 
 ---
 
-## Dependencies & Execution Order
+## Dependency Graph
 
-### Phase Dependencies
-
-- **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
-- **User Stories (Phase 3-6)**: All depend on Foundational phase completion
-  - US1 (Phase 3): No dependencies on other stories - Can start after Foundation ✅ MVP
-  - US4 (Phase 4): Enhances US1, no blocking dependencies
-  - US2 (Phase 5): Builds on US1, no blocking dependencies
-  - US3 (Phase 6): Requires US1 complete (uses same evaluation logic)
-- **Polish (Phase 7)**: Depends on all user stories being complete
-
-### User Story Dependencies
+### Story Completion Order
 
 ```
-Foundation (Phase 2) → BLOCKS ALL
-                    ↓
-        ┌───────────┼───────────┬───────────┐
-        ↓           ↓           ↓           ↓
-      US1 (P1)    US4 (P2)    US2 (P2)    US3 (P3)
-        ↓           ↓           ↓           ↓
-        └───────────┴───────────┴───────────┘
-                    ↓
-              Polish (Phase 7)
+Phase 1 (Setup) → Phase 2 (Foundational)
+                        ↓
+                  Phase 3 (US1 - MVP) ⭐
+                        ↓
+          ┌─────────────┼─────────────┐
+          ↓             ↓             ↓
+    Phase 4 (US2)  Phase 5 (US4)  Phase 6 (US3)
+          └─────────────┼─────────────┘
+                        ↓
+                  Phase 7 (Polish)
 ```
 
-**User Story 1 (P1)**: Can start after Foundational (Phase 2) - No dependencies on other stories
-- Independent test: Enter URL → View metrics ✅
-- Delivers core value: Health evaluation
+**Critical Path**: Phase 1 → Phase 2 → Phase 3 (US1) [MVP complete]
 
-**User Story 4 (P2)**: Can start after Foundational (Phase 2) - Enhances US1 but independent
-- Independent test: Hover metric → See tooltip ✅
-- Delivers educational value
-
-**User Story 2 (P2)**: Can start after Foundational (Phase 2) - Builds on evaluation but independent
-- Independent test: Add custom criterion → See evaluation ✅
-- Delivers customization value
-
-**User Story 3 (P3)**: Depends on US1 evaluation logic being solid
-- Independent test: Compare two repos → See side-by-side ✅
-- Delivers comparison value
-
-### Within Each User Story
-
-- **Tests FIRST**: Write all tests for the story, verify they FAIL
-- **Models**: Before services (T090 → T095, T096)
-- **Services**: Before components (T096 → T097-T098)
-- **Components**: Can be parallel if different files (T097 [P], T098 [P])
-- **Integration**: After all components (T101)
-- **Story complete**: All tests passing, independent test verified
-
-### Parallel Opportunities
-
-- **Setup**: All tasks T003-T015 marked [P] can run in parallel
-- **Foundational**: Tasks T017-T034 marked [P] can run in parallel within groups
-- **User Story Tests**: All test tasks within a story marked [P] can run in parallel (T035-T058 for US1)
-- **User Story Models**: Multiple models can be created in parallel (T060 [P], T061 [P])
-- **Different User Stories**: Once Foundation complete, US1/US4/US2 can work in parallel by different developers
-- **Polish**: Most tasks T122-T134 marked [P] can run in parallel
+**Parallel Opportunities After MVP**:
+- US2 (Custom Criteria) can be developed in parallel with US4 (Education)
+- US3 (Comparison) depends on US1 but is independent of US2 and US4
+- US4 (Education) is independent of US2 and US3
 
 ---
 
-## Parallel Example: User Story 1
+## Parallel Execution Examples
 
-```bash
-# After Foundation phase (T016-T034) completes:
+### Phase 1 (Setup) - Sequential (dependencies on previous tasks)
+All tasks must run sequentially due to file system and configuration dependencies.
 
-# Launch all tests for User Story 1 together (TDD - write first):
-Parallel Group 1 - E2E Tests:
-  T035: E2E test for URL input validation
-  T036: E2E test for metrics display
-  T037: E2E test for error handling
-  T038: E2E test for loading indicators
+### Phase 2 (Foundational) - High Parallelism
+```
+Parallel Group 1 (6 tasks):
+├── T016, T017 (Repository model)
+├── T018, T019 (Metric model)
+└── T020, T021 (HealthScore model)
 
-Parallel Group 2 - Unit Tests (Metric Calculations):
-  T039: Commit frequency test
-  T040: Release cadence test
-  T041: Last activity test
-  T042-T057: All other metric calculation tests
+Parallel Group 2 (2 tasks):
+├── T022, T023 (CacheManager)
+└── T024 (EventBus)
+```
 
-Parallel Group 3 - Contract Tests:
-  T058: GitHub API schema validation tests
+### Phase 3 (User Story 1) - Moderate Parallelism
+```
+Sequential: T025 → T026 (GitHubApiClient foundation)
+Then Parallel Group 1 (12 tasks):
+├── T027, T028, T029, T030 (API enhancements)
+├── T031, T032 (Activity metrics)
+├── T033, T034 (Community metrics)
+├── T035, T036 (Maintenance metrics)
+├── T037, T038 (Documentation metrics)
+└── T039, T040 (Security metrics)
 
-# After tests written and FAILING:
+Parallel Group 2 (3 tasks after T041, T042):
+├── T043, T044 (Orchestrator)
+├── T045, T046 (Parallel fetching, caching)
 
-Sequential Implementation:
-  T059: Metric calculator (makes tests pass)
+Parallel Group 3 (Components - 12 tasks):
+├── T047, T048, T049 (RepositoryInput)
+├── T050, T051 (LoadingSpinner)
+├── T052, T053 (ErrorDisplay)
+├── T054, T055 (MetricCard)
+├── T056, T057 (CategorySection)
+└── T058, T059 (HealthScoreCard)
 
-Parallel Group 4 - Models:
-  T060: HealthScore model
-  T061: EvaluationProfile model
+Sequential: T060 → T061 → T062 (Integration)
+Sequential: T063 → T064 → T065 → T066 (E2E tests)
+```
 
-Parallel Group 5 - Components:
-  T062: MetricDisplay component
-  T063: MetricCategory component
-  T064: HealthScore component
-  T065: RepositoryInput component
-  T066: LoadingIndicator component
-  T067: ErrorMessage component
+### Phase 4 (User Story 2) - Moderate Parallelism
+```
+Parallel Group 1 (6 tasks):
+├── T067, T068 (CustomCriterion model)
+├── T069, T070 (EvaluationProfile model)
+└── T071, T072 (Criterion evaluator)
 
-Sequential Integration:
-  T068: Main app controller (wires everything)
-  T069: CSS styles
-  T070-T072: Accessibility improvements
+Parallel Group 2 (2 tasks):
+├── T073, T074 (CustomCriteriaForm)
+└── T075 (MetricCard enhancement)
+
+Sequential: T076 → T077 (Integration)
+Parallel Group 3 (2 tasks):
+├── T078 (E2E - add criteria)
+└── T079 (E2E - persistence)
+```
+
+### Phase 5 (User Story 4) - High Parallelism
+```
+Parallel Group (6 tasks):
+├── T080, T081 (MetricTooltip)
+├── T082, T083 (MetricDetailModal)
+├── T084 (Threshold visualization)
+└── T085 (Integration)
+```
+
+### Phase 6 (User Story 3) - Moderate Parallelism
+```
+Parallel Group 1 (2 tasks):
+├── T086, T087 (ComparisonTable)
+└── T088 (State management)
+
+Sequential: T089 → T090 → T091 (Integration & export)
+```
+
+### Phase 7 (Polish) - High Parallelism
+```
+Parallel Group (3 tasks):
+├── T092 (Chart.js lazy load)
+├── T093 (CSS polish)
+└── T094 (Bundle analysis)
+
+Sequential validation: T095 → T096 → T097 → T098
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (User Story 1 Only)
+### MVP Scope (Recommended First Iteration)
+**Target**: User Story 1 only (T001-T066)
+- **Tasks**: 66 tasks (Setup + Foundational + US1)
+- **Estimated Effort**: 3-4 weeks (assuming TDD, thorough testing)
+- **Deliverable**: Functional health analyzer with 18 baseline metrics, caching, WCAG 2.1 AA compliance
 
-1. Complete Phase 1: Setup (T001-T015)
-2. Complete Phase 2: Foundational (T016-T034) - CRITICAL BLOCKER
-3. Complete Phase 3: User Story 1 (T035-T072)
-4. **STOP and VALIDATE**: Test US1 independently
-   - Enter "https://github.com/facebook/react"
-   - Verify all 18 baseline metrics display correctly
-   - Verify loading states, error handling, accessibility
-5. Deploy MVP to GitHub Pages
-6. Gather feedback before continuing
+### Post-MVP Increments
+1. **Increment 1**: Add US2 (Custom Criteria) - 13 tasks
+2. **Increment 2**: Add US4 (Education) - 6 tasks
+3. **Increment 3**: Add US3 (Comparison) - 6 tasks
+4. **Increment 4**: Polish & Production - 7 tasks
 
-### Incremental Delivery
+### TDD Workflow (Per Task)
+1. **Red**: Write failing test first (T0xx test tasks)
+2. **Green**: Implement minimal code to pass test (T0xx+1 implementation tasks)
+3. **Refactor**: Improve code quality while keeping tests green
+4. **Validate**: Run full test suite, ensure coverage ≥80%
 
-1. **Foundation** → Setup + Foundational complete
-2. **MVP** → Add User Story 1 → Test independently → Deploy (Baseline metrics working!)
-3. **Educational** → Add User Story 4 → Test independently → Deploy (Help tooltips working!)
-4. **Customization** → Add User Story 2 → Test independently → Deploy (Custom criteria working!)
-5. **Comparison** → Add User Story 3 → Test independently → Deploy (Full feature set!)
-6. **Polish** → Phase 7 → Final deployment
-
-Each increment adds value without breaking previous stories.
-
-### Parallel Team Strategy
-
-With multiple developers:
-
-1. **Team completes Setup + Foundational together** (T001-T034)
-2. **Once Foundational done, split work**:
-   - Developer A: User Story 1 (T035-T072) - Core MVP
-   - Developer B: User Story 4 (T073-T085) - Educational tooltips
-   - Developer C: User Story 2 (T086-T104) - Custom criteria
-3. **Converge**: User Story 3 (T105-T121) - Requires US1 stable
-4. **Team completes Polish together** (T122-T140)
+### Quality Gates (Before Phase Completion)
+- ✅ All unit tests pass (`npm test`)
+- ✅ All E2E tests pass (`npm run test:e2e`)
+- ✅ Test coverage ≥80% for new code
+- ✅ Linting passes with zero errors (`npm run lint`)
+- ✅ Bundle size within budget (<500KB)
+- ✅ Accessibility audit passes (zero axe-core violations)
+- ✅ Performance budget met (TTI <3s, LCP <2.5s)
 
 ---
 
-## Notes
+## Task Validation Summary
 
-- **TDD REQUIRED**: All tests MUST be written before implementation (constitutional requirement)
-- **[P] tasks**: Different files, no dependencies - can run in parallel
-- **[Story] label**: Maps task to specific user story for traceability (US1, US2, US3, US4)
-- **Each user story**: Independently completable and testable
-- **Tests must FAIL first**: Verify tests actually test functionality before implementing
-- **Commit frequency**: After each task or logical group
-- **Stop at checkpoints**: Validate story independently before proceeding
-- **Accessibility**: WCAG 2.1 AA compliance verified at each story completion
-- **Performance**: Bundle size and TTI verified in CI/CD
+**Format Compliance**: ✅ All 98 tasks follow strict checklist format:
+- Checkbox: `- [ ]` ✓
+- Task ID: Sequential T001-T098 ✓
+- [P] marker: 42 parallelizable tasks ✓
+- [Story] label: US1, US2, US3, US4 for user story tasks ✓
+- File paths: Specific paths for all implementation tasks ✓
 
-**Total Tasks**: 140
-- Phase 1 (Setup): 15 tasks
-- Phase 2 (Foundational): 19 tasks
-- Phase 3 (US1 - MVP): 38 tasks (24 tests + 14 implementation)
-- Phase 4 (US4): 13 tasks (5 tests + 8 implementation)
-- Phase 5 (US2): 20 tasks (9 tests + 11 implementation)
-- Phase 6 (US3): 17 tasks (6 tests + 11 implementation)
-- Phase 7 (Polish): 19 tasks
+**Coverage**:
+- ✅ All 6 entities from data-model.md mapped to tasks
+- ✅ All 18 baseline metrics covered (FR-001 to FR-008)
+- ✅ All 4 user stories with acceptance scenarios mapped to E2E tests
+- ✅ GitHub API contracts mapped to GitHubApiClient tasks
+- ✅ TDD workflow enforced (test task before implementation task)
+- ✅ WCAG 2.1 AA compliance validated via axe-core
+- ✅ Performance budgets validated in Phase 7
 
-**Parallel Opportunities**: 87 tasks marked [P] (62% can run in parallel)
+**Parallel Opportunities**: 42 tasks marked [P] (43% of total) - significant time savings potential
 
-**Test Coverage**:
-- Unit tests: 44 tests (metric calculations, models, utilities)
-- Integration tests: 2 tests (GitHub API, contracts)
-- E2E tests: 17 tests (user journeys for all 4 stories)
-- Total: 63 test tasks ensuring ≥80% coverage
+**MVP Scope**: Phase 3 (US1) = 66 tasks delivers core value proposition
+
+---
+
+## Next Steps
+
+1. **Start MVP**: Begin with Phase 1 (Setup) tasks T001-T015
+2. **Follow TDD**: Always write tests before implementation
+3. **Run Quality Gates**: Validate each phase completion before moving forward
+4. **Track Progress**: Use task checkboxes to monitor completion
+5. **Parallelize**: Leverage [P] tasks for concurrent development when team size allows
+
+**First Command**: `npm init -y` (T001)
+
+**Success Metric**: After completing US1 (T001-T066), user can evaluate facebook/react and see comprehensive health report within 10 seconds.

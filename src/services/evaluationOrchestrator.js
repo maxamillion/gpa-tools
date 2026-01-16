@@ -5,20 +5,23 @@
 
 import { GitHubApiClient } from './githubApi.js';
 import { MetricCalculator } from './metricCalculator.js';
+import { CriterionEvaluator } from './CriterionEvaluator.js';
 
 export class EvaluationOrchestrator {
-  constructor(apiClient = null, calculator = null) {
+  constructor(apiClient = null, calculator = null, criterionEvaluator = null) {
     this.apiClient = apiClient || new GitHubApiClient();
     this.calculator = calculator || new MetricCalculator();
+    this.criterionEvaluator = criterionEvaluator || new CriterionEvaluator();
   }
 
   /**
    * Evaluate a GitHub repository
    * @param {string} owner - Repository owner
    * @param {string} name - Repository name
+   * @param {Array} customCriteria - Optional custom criteria to evaluate
    * @returns {Promise<Object>} Evaluation result with metrics
    */
-  async evaluate(owner, name) {
+  async evaluate(owner, name, customCriteria = []) {
     try {
       // Calculate date for commits filter (90 days ago)
       const ninetyDaysAgo = new Date();
@@ -50,6 +53,28 @@ export class EvaluationOrchestrator {
         readme,
       });
 
+      // Evaluate custom criteria if provided
+      let evaluatedCustomCriteria = [];
+      if (customCriteria && customCriteria.length > 0) {
+        const repoData = {
+          language: repo.language,
+          license: repo.license?.name,
+          dependencies: {}, // TODO: Parse package.json for dependencies
+          devDependencies: {},
+          files: [], // TODO: Get file list from repo
+        };
+
+        evaluatedCustomCriteria = await Promise.all(
+          customCriteria.map(async (criterion) => {
+            const result = await this.criterionEvaluator.evaluate(criterion, repoData);
+            return {
+              ...criterion,
+              ...result,
+            };
+          })
+        );
+      }
+
       // Return evaluation result
       return {
         repository: {
@@ -59,6 +84,7 @@ export class EvaluationOrchestrator {
           url: `https://github.com/${owner}/${name}`,
         },
         metrics,
+        customCriteria: evaluatedCustomCriteria,
         evaluatedAt: new Date().toISOString(),
       };
     } catch (error) {

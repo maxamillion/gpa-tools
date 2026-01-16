@@ -6,6 +6,7 @@
   <meta name="description" content="Evaluate open source project health metrics for GitHub repositories" />
   <title>Open Source Project Health Analyzer</title>
   <link rel="stylesheet" href="/src/styles/main.css" />
+  <link rel="stylesheet" href="/src/styles/components.css" />
 </head>
 <body>
   <header role="banner">
@@ -14,6 +15,10 @@
   </header>
 
   <main role="main">
+    <section id="custom-criteria-section" aria-label="Custom evaluation criteria">
+      <custom-criteria-form id="custom-criteria-form"></custom-criteria-form>
+    </section>
+
     <section id="input-section" aria-label="Repository input">
       <form id="repo-form">
         <label for="repo-url">
@@ -38,6 +43,10 @@
         <p>Analyzing repository...</p>
       </div>
       <div id="results-container"></div>
+    </section>
+
+    <section id="comparison-section" aria-label="Project comparison" hidden>
+      <div id="comparison-container"></div>
     </section>
   </main>
 
