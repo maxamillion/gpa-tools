@@ -26,7 +26,7 @@ export class EvaluationOrchestrator {
       const since = ninetyDaysAgo.toISOString().split('T')[0];
 
       // Fetch all required data from GitHub API
-      const [repo, contributors, commits, releases, issues, pulls, community, readme] =
+      const [repo, contributors, commits, releases, issues, pulls, community, readme, rootContents] =
         await Promise.all([
           this.apiClient.getRepository(owner, name),
           this.apiClient.getContributors(owner, name),
@@ -36,6 +36,7 @@ export class EvaluationOrchestrator {
           this.apiClient.getPullRequests(owner, name, 'all'),
           this.apiClient.getCommunityProfile(owner, name),
           this.apiClient.getReadme(owner, name),
+          this.apiClient.getDirectoryContents(owner, name),
         ]);
 
       // Calculate all metrics
@@ -48,6 +49,7 @@ export class EvaluationOrchestrator {
         pulls,
         community,
         readme,
+        rootContents,
       });
 
       // Return evaluation result

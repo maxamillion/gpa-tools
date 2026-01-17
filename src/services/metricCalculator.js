@@ -418,7 +418,16 @@ export class MetricCalculator {
     });
   }
 
-  calculateDocumentationDirectory(hasDocsDir) {
+  calculateDocumentationDirectory(rootContents) {
+    let hasDocsDir = false;
+
+    if (Array.isArray(rootContents)) {
+      hasDocsDir = rootContents.some(
+        (item) =>
+          item.type === 'dir' && ['docs', 'doc', 'documentation'].includes(item.name.toLowerCase())
+      );
+    }
+
     const def = getMetricDefinition('documentation-directory');
     return new Metric({
       id: def.id,
@@ -603,7 +612,7 @@ export class MetricCalculator {
 
       // Documentation (3)
       this.calculateREADMEQuality(data.readme),
-      this.calculateDocumentationDirectory(false), // TODO: Implement docs dir check
+      this.calculateDocumentationDirectory(data.rootContents),
       this.calculateWikiPresence(data.repo),
 
       // Security & Governance (5)

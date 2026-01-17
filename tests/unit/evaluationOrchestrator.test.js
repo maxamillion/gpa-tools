@@ -21,6 +21,7 @@ describe('EvaluationOrchestrator', () => {
       getPullRequests: vi.fn(),
       getCommunityProfile: vi.fn(),
       getReadme: vi.fn(),
+      getDirectoryContents: vi.fn(),
     };
 
     mockCalculator = {
@@ -63,6 +64,7 @@ describe('EvaluationOrchestrator', () => {
       mockApiClient.getPullRequests.mockResolvedValue(mockPulls);
       mockApiClient.getCommunityProfile.mockResolvedValue(mockCommunity);
       mockApiClient.getReadme.mockResolvedValue(mockReadme);
+      mockApiClient.getDirectoryContents.mockResolvedValue([]);
       mockCalculator.calculateAllMetrics.mockReturnValue([{ id: 'test-metric', score: 85 }]);
     });
 
@@ -77,6 +79,7 @@ describe('EvaluationOrchestrator', () => {
       expect(mockApiClient.getPullRequests).toHaveBeenCalledWith('facebook', 'react', 'all');
       expect(mockApiClient.getCommunityProfile).toHaveBeenCalledWith('facebook', 'react');
       expect(mockApiClient.getReadme).toHaveBeenCalledWith('facebook', 'react');
+      expect(mockApiClient.getDirectoryContents).toHaveBeenCalledWith('facebook', 'react');
     });
 
     it('should calculate all metrics with fetched data', async () => {
@@ -91,6 +94,7 @@ describe('EvaluationOrchestrator', () => {
         pulls: mockPulls,
         community: mockCommunity,
         readme: mockReadme,
+        rootContents: [],
       });
     });
 

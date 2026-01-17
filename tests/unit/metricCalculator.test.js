@@ -249,6 +249,42 @@ example.doSomething();
     });
   });
 
+  describe('calculateDocumentationDirectory', () => {
+    it('should pass if "docs" folder exists', () => {
+      const contents = [
+        { name: 'src', type: 'dir' },
+        { name: 'docs', type: 'dir' },
+      ];
+      const result = calculator.calculateDocumentationDirectory(contents);
+      expect(result.value).toBe(true);
+      expect(result.score).toBe(100);
+    });
+
+    it('should pass if "doc" folder exists', () => {
+      const contents = [{ name: 'doc', type: 'dir' }];
+      const result = calculator.calculateDocumentationDirectory(contents);
+      expect(result.value).toBe(true);
+    });
+
+    it('should pass if "documentation" folder exists', () => {
+      const contents = [{ name: 'documentation', type: 'dir' }];
+      const result = calculator.calculateDocumentationDirectory(contents);
+      expect(result.value).toBe(true);
+    });
+
+    it('should fail if no docs folder exists', () => {
+      const contents = [{ name: 'src', type: 'dir' }];
+      const result = calculator.calculateDocumentationDirectory(contents);
+      expect(result.value).toBe(false);
+      expect(result.score).toBe(0);
+    });
+
+    it('should handle empty or invalid input', () => {
+      expect(calculator.calculateDocumentationDirectory(null).value).toBe(false);
+      expect(calculator.calculateDocumentationDirectory([]).value).toBe(false);
+    });
+  });
+
   describe('calculateBusFactor', () => {
     it('should calculate minimum contributors for 50% of commits', () => {
       const contributors = [
@@ -279,6 +315,7 @@ example.doSomething();
         pulls: [],
         readme: '# Test',
         community: { files: {} },
+        rootContents: [],
       };
 
       const metrics = await calculator.calculateAllMetrics(mockData);
