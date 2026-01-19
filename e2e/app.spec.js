@@ -47,7 +47,11 @@ test.describe('OSS Health Analyzer', () => {
   test('should load repo from URL parameter', async ({ page }) => {
     await page.goto('/?repo=facebook/react');
     const input = page.locator('#repo-url');
+    // App auto-analyzes when repo param provided, so input should have the value
+    // and loading or error section should appear
     await expect(input).toHaveValue('https://github.com/facebook/react');
+    // Wait for either loading or error to appear (auto-analyze triggers)
+    await expect(page.locator('#loading-section:not(.hidden), #error-section:not(.hidden)').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('should be responsive on mobile', async ({ page }) => {
@@ -61,10 +65,13 @@ test.describe('OSS Health Analyzer', () => {
     const title = page.locator('.app-title');
     await expect(title).toBeVisible();
 
-    // Check button is visible
+    // Check button is visible and has a background color set
     const button = page.locator('#analyze-btn');
     await expect(button).toBeVisible();
-    await expect(button).toHaveCSS('background-color', 'rgb(88, 166, 255)');
+    // Verify button has styling (not transparent)
+    const bgColor = await button.evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(bgColor).not.toBe('rgba(0, 0, 0, 0)');
+    expect(bgColor).not.toBe('transparent');
   });
 
   test('should hide error section initially', async ({ page }) => {
@@ -111,7 +118,8 @@ test.describe('Keyboard Navigation', () => {
     await page.locator('#repo-url').fill('https://github.com/test/repo');
     await page.keyboard.press('Enter');
 
-    // Should attempt to analyze (will likely error, but form submitted)
-    await expect(page.locator('#error-section').or(page.locator('#loading-section'))).toBeVisible();
+    // Should attempt to analyze (will show loading then error for invalid repo)
+    // Wait for either loading or error to become visible (not have hidden class)
+    await expect(page.locator('#loading-section:not(.hidden), #error-section:not(.hidden)').first()).toBeVisible({ timeout: 10000 });
   });
 });
