@@ -46,8 +46,12 @@ test.describe('OSS Health Analyzer', () => {
 
   test('should load repo from URL parameter', async ({ page }) => {
     await page.goto('/?repo=facebook/react');
+    // Wait for JavaScript to initialize and process URL param
+    await page.waitForFunction(() => {
+      const input = document.getElementById('repo-url');
+      return input && input.value.includes('github.com');
+    }, { timeout: 5000 });
     const input = page.locator('#repo-url');
-    // App normalizes repo param to full GitHub URL
     await expect(input).toHaveValue('https://github.com/facebook/react');
   });
 
@@ -112,10 +116,19 @@ test.describe('Keyboard Navigation', () => {
   });
 
   test('should submit form with button click', async ({ page }) => {
+    // Wait for JavaScript to be ready
+    await page.waitForFunction(() => {
+      const form = document.getElementById('repo-form');
+      return form !== null;
+    });
+
     await page.locator('#repo-url').fill('https://github.com/facebook/react');
     await page.locator('#analyze-btn').click();
 
-    // Should show loading section when form is submitted
-    await expect(page.locator('#loading-section')).not.toHaveClass(/hidden/, { timeout: 5000 });
+    // Should show loading section when form is submitted (wait for class change)
+    await page.waitForFunction(() => {
+      const loading = document.getElementById('loading-section');
+      return loading && !loading.classList.contains('hidden');
+    }, { timeout: 10000 });
   });
 });
