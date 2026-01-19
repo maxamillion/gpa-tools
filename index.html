@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Analyze open source project health using industry-standard metrics from CHAOSS, OpenSSF, and CNCF" />
+    <meta name="theme-color" content="#1a1a2e" />
+
+    <title>OSS Health Analyzer</title>
+
+    <!-- Preconnect to GitHub API -->
+    <link rel="preconnect" href="https://api.github.com" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <link rel="stylesheet" href="/src/styles/main.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header">
+        <h1 class="app-title">
+          <span class="icon" aria-hidden="true">🔬</span>
+          OSS Health Analyzer
+        </h1>
+        <p class="app-subtitle">
+          Evaluate open source project health using metrics from CHAOSS, OpenSSF, CNCF &amp; more
+        </p>
+      </header>
+
+      <main class="main-content">
+        <section class="input-section" aria-labelledby="input-heading">
+          <h2 id="input-heading" class="visually-hidden">Repository Input</h2>
+
+          <form id="repo-form" class="repo-form">
+            <div class="form-group">
+              <label for="repo-url" class="form-label">GitHub Repository URL</label>
+              <div class="input-wrapper">
+                <input
+                  type="url"
+                  id="repo-url"
+                  name="repo-url"
+                  class="form-input"
+                  placeholder="https://github.com/owner/repo"
+                  autocomplete="url"
+                  required
+                />
+                <button type="submit" class="btn btn-primary" id="analyze-btn">
+                  <span class="btn-text">Analyze</span>
+                  <span class="btn-loading" aria-hidden="true">
+                    <span class="spinner"></span>
+                  </span>
+                </button>
+              </div>
+              <p class="form-hint" id="repo-hint">
+                Enter the full URL of a public GitHub repository
+              </p>
+            </div>
+
+            <details class="auth-section">
+              <summary class="auth-toggle">
+                <span class="icon" aria-hidden="true">🔑</span>
+                Optional: Add GitHub Token for higher rate limits
+              </summary>
+              <div class="auth-content">
+                <div class="form-group">
+                  <label for="github-token" class="form-label">
+                    Personal Access Token
+                    <span class="label-hint">(stored locally only)</span>
+                  </label>
+                  <input
+                    type="password"
+                    id="github-token"
+                    name="github-token"
+                    class="form-input"
+                    placeholder="ghp_xxxxxxxxxxxx"
+                    autocomplete="off"
+                  />
+                  <p class="form-hint">
+                    Without a token: 60 requests/hour. With token: 5,000 requests/hour.
+                    <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">
+                      Create a token
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </details>
+          </form>
+        </section>
+
+        <section id="results-section" class="results-section hidden" aria-labelledby="results-heading">
+          <h2 id="results-heading" class="visually-hidden">Analysis Results</h2>
+
+          <div id="results-container">
+            <!-- Results will be rendered here by JavaScript -->
+          </div>
+        </section>
+
+        <section id="error-section" class="error-section hidden" aria-live="assertive">
+          <div class="error-card">
+            <span class="error-icon" aria-hidden="true">⚠️</span>
+            <h3 class="error-title">Analysis Failed</h3>
+            <p class="error-message" id="error-message"></p>
+            <button type="button" class="btn btn-secondary" id="error-dismiss">
+              Try Again
+            </button>
+          </div>
+        </section>
+
+        <section id="loading-section" class="loading-section hidden" aria-live="polite">
+          <div class="loading-card">
+            <div class="loading-spinner" aria-hidden="true"></div>
+            <p class="loading-text">Analyzing repository...</p>
+            <p class="loading-progress" id="loading-progress"></p>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <p>
+          Built with metrics from
+          <a href="https://chaoss.community/" target="_blank" rel="noopener">CHAOSS</a>,
+          <a href="https://openssf.org/" target="_blank" rel="noopener">OpenSSF</a>,
+          <a href="https://www.cncf.io/" target="_blank" rel="noopener">CNCF</a> &amp;
+          <a href="https://www.linuxfoundation.org/" target="_blank" rel="noopener">Linux Foundation</a>
+        </p>
+        <p class="footer-links">
+          <a href="https://github.com/admiller/oss-health-analyzer" target="_blank" rel="noopener">
+            Source Code
+          </a>
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
