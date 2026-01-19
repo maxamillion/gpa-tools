@@ -439,6 +439,11 @@ export class GitHubApiService {
       'openjs-foundation': { foundation: 'openjs', level: 'member', confidence: 100 },
       'eclipse': { foundation: 'eclipse', level: 'member', confidence: 100 },
       'eclipse-ee4j': { foundation: 'eclipse', level: 'member', confidence: 100 },
+      // LF AI & Data Foundation projects
+      'mlflow': { foundation: 'linux-foundation', level: 'lfai-data', confidence: 100 },
+      'onnx': { foundation: 'linux-foundation', level: 'lfai-data', confidence: 100 },
+      'milvus-io': { foundation: 'linux-foundation', level: 'lfai-data', confidence: 100 },
+      'feast-dev': { foundation: 'linux-foundation', level: 'lfai-data', confidence: 100 },
     };
 
     const ownerLower = owner.toLowerCase();
