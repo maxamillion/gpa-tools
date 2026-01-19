@@ -1,7 +1,7 @@
 /**
  * Metric Calculator
  *
- * Calculates all 24 baseline metrics from GitHub API data.
+ * Calculates all 25 baseline metrics from GitHub API data.
  */
 
 import { METRIC_DEFINITIONS } from '../config/metricDefinitions.js';
@@ -48,9 +48,10 @@ export class MetricCalculator {
     metrics.push(this.calculateVulnerabilityReporting(data.communityProfile));
 
     // Governance metrics
-    metrics.push(this.calculateGovernanceDocs(data.communityProfile));
+    metrics.push(this.calculateGovernanceDocs(data.governanceFiles));
     metrics.push(this.calculateMaintainerCount(data.contributors, data.pullRequests));
-    metrics.push(this.calculateOpenSSFBadge(data.communityProfile, data.repository));
+    metrics.push(this.calculateOpenSSFBadge(data.openSSFBadge));
+    metrics.push(this.calculateFoundationAffiliation(data.foundationAffiliation, data.governanceFiles));
 
     return metrics;
   }
@@ -680,20 +681,78 @@ export class MetricCalculator {
 
   /**
    * Check for governance documentation
+   * Score based on: main governance doc (40pts) + leadership structure (30pts) + ownership files (30pts)
    */
-  calculateGovernanceDocs(_communityProfile) {
+  calculateGovernanceDocs(governanceFiles) {
     const metricDef = METRIC_DEFINITIONS['governance-docs'];
-    // Community profile doesn't track governance docs
-    const exists = false; // Would need file check
+
+    // If no governance data provided, return neutral score
+    if (!governanceFiles) {
+      return {
+        ...metricDef,
+        rawValue: false,
+        displayValue: 'Unknown',
+        score: 50,
+        level: getScoreLevel(50),
+        isBoolean: true,
+        note: 'Governance data not available',
+      };
+    }
+
+    let score = 0;
+    const foundFiles = [];
+
+    // Main governance doc (40 points)
+    if (governanceFiles.governance) {
+      score += 40;
+      foundFiles.push('GOVERNANCE');
+      // Bonus for substantive content (>500 chars)
+      if (governanceFiles.governance.contentLength > 500) {
+        score += 10;
+      }
+    }
+
+    // Leadership structure (30 points) - TSC or Steering Committee
+    if (governanceFiles.tsc || governanceFiles.steering) {
+      score += 30;
+      if (governanceFiles.tsc) {
+        foundFiles.push('TSC');
+      }
+      if (governanceFiles.steering) {
+        foundFiles.push('STEERING');
+      }
+    }
+
+    // Ownership files (30 points) - OWNERS, MAINTAINERS, CODEOWNERS
+    const ownershipScore = Math.min(30,
+      (governanceFiles.owners ? 15 : 0) +
+      (governanceFiles.maintainers ? 15 : 0) +
+      (governanceFiles.codeowners ? 10 : 0)
+    );
+    score += ownershipScore;
+    if (governanceFiles.owners) {
+      foundFiles.push('OWNERS');
+    }
+    if (governanceFiles.maintainers) {
+      foundFiles.push('MAINTAINERS');
+    }
+    if (governanceFiles.codeowners) {
+      foundFiles.push('CODEOWNERS');
+    }
+
+    // Cap at 100
+    score = Math.min(100, score);
+
+    const hasGovernance = foundFiles.length > 0;
 
     return {
       ...metricDef,
-      rawValue: exists,
-      displayValue: 'Unknown',
-      score: 50, // Neutral
-      level: getScoreLevel(50),
-      isBoolean: true,
-      note: 'Requires additional API call',
+      rawValue: hasGovernance,
+      displayValue: hasGovernance ? foundFiles.join(', ') : 'Missing',
+      score,
+      level: getScoreLevel(score),
+      isBoolean: false,
+      details: foundFiles,
     };
   }
 
@@ -735,19 +794,161 @@ export class MetricCalculator {
   /**
    * Check for OpenSSF Best Practices badge
    */
-  calculateOpenSSFBadge(_communityProfile, _repository) {
+  calculateOpenSSFBadge(openSSFData) {
     const metricDef = METRIC_DEFINITIONS['openssf-badge'];
 
-    // Would need to check README or OpenSSF API
-    // For now, return unknown
+    // If no data provided, return 0 score
+    if (!openSSFData) {
+      return {
+        ...metricDef,
+        rawValue: 'none',
+        displayValue: 'Not Found',
+        score: 0,
+        level: getScoreLevel(0),
+        note: 'OpenSSF data not available',
+      };
+    }
+
+    if (!openSSFData.found) {
+      return {
+        ...metricDef,
+        rawValue: 'none',
+        displayValue: 'Not Found',
+        score: 0,
+        level: getScoreLevel(0),
+      };
+    }
+
+    // Map level to score using threshold config
+    const level = openSSFData.level || 'none';
+    // Normalize level format (API returns with underscores, we use hyphens)
+    const normalizedLevel = level.replace('_', '-');
+    const score = this.calculateScore('openssf-badge', normalizedLevel);
+
+    // Create display value
+    const levelLabels = {
+      'none': 'None',
+      'in-progress': 'In Progress',
+      'passing': 'Passing',
+      'silver': 'Silver',
+      'gold': 'Gold',
+    };
+    const displayValue = levelLabels[normalizedLevel] || level;
+
     return {
       ...metricDef,
-      rawValue: 'none',
-      displayValue: 'Unknown',
-      score: 0,
-      level: getScoreLevel(0),
-      note: 'Requires OpenSSF API check',
+      rawValue: normalizedLevel,
+      displayValue,
+      score,
+      level: getScoreLevel(score),
+      source: openSSFData.source,
+      projectId: openSSFData.projectId,
     };
+  }
+
+  /**
+   * Calculate foundation affiliation score
+   */
+  calculateFoundationAffiliation(foundationData, governanceFiles) {
+    const metricDef = METRIC_DEFINITIONS['foundation-affiliation'];
+
+    // If no foundation data provided
+    if (!foundationData) {
+      return {
+        ...metricDef,
+        rawValue: 'none',
+        displayValue: 'Unknown',
+        score: 0,
+        level: getScoreLevel(0),
+        note: 'Foundation data not available',
+      };
+    }
+
+    // No foundation found
+    if (!foundationData.foundation) {
+      // Check if project has governance docs - gives partial credit
+      const hasGovernance = governanceFiles &&
+        (governanceFiles.governance || governanceFiles.owners || governanceFiles.maintainers);
+
+      if (hasGovernance) {
+        return {
+          ...metricDef,
+          rawValue: 'none-with-governance',
+          displayValue: 'Independent (with governance)',
+          score: 50,
+          level: getScoreLevel(50),
+          note: 'No foundation affiliation but has governance documentation',
+        };
+      }
+
+      return {
+        ...metricDef,
+        rawValue: 'none',
+        displayValue: 'None',
+        score: 0,
+        level: getScoreLevel(0),
+      };
+    }
+
+    // Map foundation + level to score key
+    const scoreKey = this.getFoundationScoreKey(foundationData.foundation, foundationData.level);
+    const score = this.calculateScore('foundation-affiliation', scoreKey);
+
+    // Create display value
+    const foundationLabels = {
+      'cncf': 'CNCF',
+      'apache': 'Apache',
+      'linux-foundation': 'Linux Foundation',
+      'openjs': 'OpenJS',
+      'eclipse': 'Eclipse',
+    };
+    const levelLabels = {
+      'graduated': 'Graduated',
+      'incubating': 'Incubating',
+      'sandbox': 'Sandbox',
+      'tlp': 'TLP',
+      'lfai-data': 'LF AI & Data',
+      'lf-edge': 'LF Edge',
+      'member': 'Member',
+    };
+
+    const foundationName = foundationLabels[foundationData.foundation] || foundationData.foundation;
+    const levelName = levelLabels[foundationData.level] || foundationData.level;
+    const displayValue = `${foundationName} (${levelName})`;
+
+    return {
+      ...metricDef,
+      rawValue: scoreKey,
+      displayValue,
+      score,
+      level: getScoreLevel(score),
+      foundation: foundationData.foundation,
+      foundationLevel: foundationData.level,
+      confidence: foundationData.confidence,
+      source: foundationData.source,
+    };
+  }
+
+  /**
+   * Get the score key for foundation affiliation
+   */
+  getFoundationScoreKey(foundation, level) {
+    // Map foundation + level to score key
+    const keyMap = {
+      'cncf-graduated': 'cncf-graduated',
+      'cncf-incubating': 'cncf-incubating',
+      'cncf-sandbox': 'cncf-sandbox',
+      'cncf-member': 'cncf-member',
+      'apache-tlp': 'apache-tlp',
+      'linux-foundation-member': 'lf-member',
+      'linux-foundation-lfai-data': 'lfai-data',
+      'linux-foundation-lf-edge': 'lf-edge',
+      'openjs-member': 'openjs-member',
+      'eclipse-member': 'eclipse-member',
+    };
+
+    const key = `${foundation}-${level}`;
+    return keyMap[key] || 'none';
   }
 
   // ============================================================================
@@ -773,6 +974,11 @@ export class MetricCalculator {
 
     // Handle badge metrics
     if (config.type === 'badge') {
+      return config.levels[value] || 0;
+    }
+
+    // Handle affiliation metrics
+    if (config.type === 'affiliation') {
       return config.levels[value] || 0;
     }
 

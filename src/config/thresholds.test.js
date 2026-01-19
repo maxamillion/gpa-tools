@@ -67,8 +67,8 @@ describe('thresholds', () => {
   });
 
   describe('METRIC_THRESHOLDS', () => {
-    it('should have 24 metric definitions', () => {
-      expect(Object.keys(METRIC_THRESHOLDS)).toHaveLength(24);
+    it('should have 25 metric definitions', () => {
+      expect(Object.keys(METRIC_THRESHOLDS)).toHaveLength(25);
     });
 
     it('should have valid threshold structures', () => {
@@ -76,7 +76,7 @@ describe('thresholds', () => {
         if (config.type === 'boolean') {
           expect(config.passScore).toBeDefined();
           expect(config.failScore).toBeDefined();
-        } else if (config.type === 'badge') {
+        } else if (config.type === 'badge' || config.type === 'affiliation') {
           expect(config.levels).toBeDefined();
         } else {
           expect(config.thresholds).toBeDefined();

@@ -1,7 +1,7 @@
 /**
  * Metric Definitions
  *
- * 24 baseline metrics organized into 6 categories based on:
+ * 25 baseline metrics organized into 6 categories based on:
  * - CHAOSS (Community Health Analytics Open Source Software)
  * - OpenSSF (Open Source Security Foundation)
  * - CNCF (Cloud Native Computing Foundation)
@@ -365,6 +365,18 @@ export const METRIC_DEFINITIONS = {
     unit: 'level',
     higherIsBetter: true,
     source: 'OpenSSF',
+  },
+
+  'foundation-affiliation': {
+    id: 'foundation-affiliation',
+    name: 'Foundation Affiliation',
+    category: 'governance',
+    description: 'Affiliation with major open source foundations (CNCF, Apache, Linux Foundation, etc.)',
+    calculation: 'Detection from org, topics, README, and description',
+    type: 'affiliation',
+    unit: 'level',
+    higherIsBetter: true,
+    source: 'CNCF/Apache/LF',
   },
 };
 

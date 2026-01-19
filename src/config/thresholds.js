@@ -222,6 +222,29 @@ export const METRIC_THRESHOLDS = {
       'gold': 100,
     },
   },
+
+  'foundation-affiliation': {
+    // Foundation affiliation levels
+    type: 'affiliation',
+    levels: {
+      // Top-tier foundations - graduated/TLP status
+      'cncf-graduated': 100,
+      'apache-tlp': 100,
+      'lf-member': 100,
+      'lfai-data': 100,
+      'lf-edge': 100,
+      // Mid-tier - incubating or member status
+      'cncf-incubating': 90,
+      'eclipse-member': 85,
+      'openjs-member': 85,
+      'cncf-sandbox': 80,
+      'cncf-member': 80,
+      // No foundation but has governance
+      'none-with-governance': 50,
+      // No foundation affiliation
+      'none': 0,
+    },
+  },
 };
 
 /**

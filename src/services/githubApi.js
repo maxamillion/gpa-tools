@@ -287,4 +287,243 @@ export class GitHubApiService {
     const { data } = await this.octokit.rateLimit.get();
     return data.resources.core;
   }
+
+  /**
+   * Get governance-related files from repository
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @returns {Promise<Object>} Governance files data
+   */
+  async getGovernanceFiles(owner, repo) {
+    const governanceFiles = {
+      governance: null,
+      steering: null,
+      tsc: null,
+      owners: null,
+      maintainers: null,
+      codeowners: null,
+    };
+
+    // Files to check with their possible locations
+    const fileChecks = [
+      { key: 'governance', paths: ['GOVERNANCE.md', 'governance.md', 'docs/GOVERNANCE.md', '.github/GOVERNANCE.md'] },
+      { key: 'steering', paths: ['STEERING.md', 'STEERING-COMMITTEE.md', 'docs/governance/STEERING.md'] },
+      { key: 'tsc', paths: ['TSC.md', 'docs/TSC.md', 'TECHNICAL-STEERING-COMMITTEE.md'] },
+      { key: 'owners', paths: ['OWNERS', 'OWNERS.md', 'docs/OWNERS'] },
+      { key: 'maintainers', paths: ['MAINTAINERS', 'MAINTAINERS.md', 'docs/MAINTAINERS.md'] },
+      { key: 'codeowners', paths: ['CODEOWNERS', '.github/CODEOWNERS', 'docs/CODEOWNERS'] },
+    ];
+
+    // Check files in parallel
+    const checkPromises = fileChecks.map(async ({ key, paths }) => {
+      for (const path of paths) {
+        const exists = await this.fileExists(owner, repo, path);
+        if (exists) {
+          // Try to get content for quality assessment
+          const content = await this.getFileContent(owner, repo, path);
+          return { key, path, exists: true, contentLength: content?.length || 0 };
+        }
+      }
+      return { key, path: null, exists: false, contentLength: 0 };
+    });
+
+    const results = await Promise.all(checkPromises);
+    for (const result of results) {
+      if (result.exists) {
+        governanceFiles[result.key] = {
+          path: result.path,
+          contentLength: result.contentLength,
+        };
+      }
+    }
+
+    return governanceFiles;
+  }
+
+  /**
+   * Get OpenSSF Best Practices badge status
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @returns {Promise<Object>} OpenSSF badge data
+   */
+  async getOpenSSFBadge(owner, repo) {
+    const repoUrl = `https://github.com/${owner}/${repo}`;
+
+    // Try OpenSSF API first
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(
+        `https://www.bestpractices.dev/projects.json?url=${encodeURIComponent(repoUrl)}`,
+        { signal: controller.signal }
+      );
+      clearTimeout(timeout);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const project = data[0];
+          // Map badge_level to our levels
+          // OpenSSF returns: in_progress, passing, silver, gold
+          const level = project.badge_level || 'in_progress';
+          return {
+            found: true,
+            source: 'api',
+            level: level,
+            projectId: project.id,
+            percentComplete: project.badge_percentage_0 || 0,
+          };
+        }
+      }
+    } catch {
+      // API failed or timed out, fall back to README
+    }
+
+    // Fallback: Check README for badge
+    try {
+      const readme = await this.getFileContent(owner, repo, 'README.md');
+      if (readme) {
+        // Check for OpenSSF badge patterns
+        const badgePatterns = [
+          /bestpractices\.dev\/projects\/(\d+)\/badge/,
+          /cii-best-practices-badge.*?(\d+)/,
+          /openssf.*?badge/i,
+        ];
+
+        for (const pattern of badgePatterns) {
+          const match = readme.match(pattern);
+          if (match) {
+            // Try to determine level from badge URL or surrounding text
+            if (readme.includes('gold')) {
+              return { found: true, source: 'readme', level: 'gold' };
+            } else if (readme.includes('silver')) {
+              return { found: true, source: 'readme', level: 'silver' };
+            } else if (readme.includes('passing')) {
+              return { found: true, source: 'readme', level: 'passing' };
+            }
+            return { found: true, source: 'readme', level: 'in_progress' };
+          }
+        }
+      }
+    } catch {
+      // README check failed
+    }
+
+    return { found: false, source: null, level: 'none' };
+  }
+
+  /**
+   * Detect foundation affiliation for the repository
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @param {Object} repository - Repository data (already fetched)
+   * @returns {Promise<Object>} Foundation affiliation data
+   */
+  async detectFoundationAffiliation(owner, repo, repository = null) {
+    const result = {
+      foundation: null,
+      level: null,
+      confidence: 0,
+      source: null,
+    };
+
+    // 1. Check GitHub organization (highest confidence)
+    const orgAffiliations = {
+      'apache': { foundation: 'apache', level: 'tlp', confidence: 100 },
+      'kubernetes': { foundation: 'cncf', level: 'graduated', confidence: 100 },
+      'cncf': { foundation: 'cncf', level: 'member', confidence: 95 },
+      'linux-foundation': { foundation: 'linux-foundation', level: 'member', confidence: 100 },
+      'lfai': { foundation: 'linux-foundation', level: 'lfai-data', confidence: 100 },
+      'lf-edge': { foundation: 'linux-foundation', level: 'lf-edge', confidence: 100 },
+      'openjs-foundation': { foundation: 'openjs', level: 'member', confidence: 100 },
+      'eclipse': { foundation: 'eclipse', level: 'member', confidence: 100 },
+      'eclipse-ee4j': { foundation: 'eclipse', level: 'member', confidence: 100 },
+    };
+
+    const ownerLower = owner.toLowerCase();
+    if (orgAffiliations[ownerLower]) {
+      return {
+        ...orgAffiliations[ownerLower],
+        source: 'organization',
+      };
+    }
+
+    // 2. Check repository topics (high confidence)
+    const repoData = repository || await this.getRepository(owner, repo);
+    const topics = repoData.topics || [];
+
+    const topicMappings = {
+      'cncf-graduated': { foundation: 'cncf', level: 'graduated', confidence: 95 },
+      'cncf-incubating': { foundation: 'cncf', level: 'incubating', confidence: 95 },
+      'cncf-sandbox': { foundation: 'cncf', level: 'sandbox', confidence: 95 },
+      'linux-foundation': { foundation: 'linux-foundation', level: 'member', confidence: 90 },
+      'lfai': { foundation: 'linux-foundation', level: 'lfai-data', confidence: 90 },
+      'apache': { foundation: 'apache', level: 'tlp', confidence: 85 },
+      'openjs': { foundation: 'openjs', level: 'member', confidence: 85 },
+      'eclipse': { foundation: 'eclipse', level: 'member', confidence: 85 },
+    };
+
+    for (const topic of topics) {
+      const topicLower = topic.toLowerCase();
+      if (topicMappings[topicLower]) {
+        return {
+          ...topicMappings[topicLower],
+          source: 'topic',
+        };
+      }
+    }
+
+    // 3. Check README for foundation mentions (moderate confidence)
+    try {
+      const readme = await this.getFileContent(owner, repo, 'README.md');
+      if (readme) {
+        const readmePatterns = [
+          { pattern: /linux foundation ai|lfai|lf ai & data/i, foundation: 'linux-foundation', level: 'lfai-data', confidence: 85 },
+          { pattern: /cloud native computing foundation|cncf/i, foundation: 'cncf', level: 'member', confidence: 80 },
+          { pattern: /apache software foundation/i, foundation: 'apache', level: 'tlp', confidence: 80 },
+          { pattern: /linux foundation/i, foundation: 'linux-foundation', level: 'member', confidence: 75 },
+          { pattern: /openjs foundation/i, foundation: 'openjs', level: 'member', confidence: 80 },
+          { pattern: /eclipse foundation/i, foundation: 'eclipse', level: 'member', confidence: 80 },
+        ];
+
+        // Also check for CNCF badge images
+        if (readme.includes('cncf.io') || readme.includes('landscapeapp.io')) {
+          const cncfMatch = readme.match(/cncf.*?(graduated|incubating|sandbox)/i);
+          if (cncfMatch) {
+            return {
+              foundation: 'cncf',
+              level: cncfMatch[1].toLowerCase(),
+              confidence: 85,
+              source: 'readme_badge',
+            };
+          }
+        }
+
+        for (const { pattern, foundation, level, confidence } of readmePatterns) {
+          if (pattern.test(readme)) {
+            return { foundation, level, confidence, source: 'readme' };
+          }
+        }
+      }
+    } catch {
+      // README check failed
+    }
+
+    // 4. Check description and homepage (lower confidence)
+    if (repoData.description) {
+      const descLower = repoData.description.toLowerCase();
+      if (descLower.includes('cncf') || descLower.includes('cloud native')) {
+        return { foundation: 'cncf', level: 'member', confidence: 70, source: 'description' };
+      }
+      if (descLower.includes('apache')) {
+        return { foundation: 'apache', level: 'tlp', confidence: 70, source: 'description' };
+      }
+      if (descLower.includes('linux foundation') || descLower.includes('lfai')) {
+        return { foundation: 'linux-foundation', level: 'member', confidence: 70, source: 'description' };
+      }
+    }
+
+    return result;
+  }
 }

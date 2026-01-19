@@ -175,6 +175,15 @@ class OSSHealthAnalyzer {
       this.updateProgress('Checking community health files...');
       const communityProfile = await this.githubApi.getCommunityProfile(repoInfo.owner, repoInfo.repo);
 
+      this.updateProgress('Checking governance documentation...');
+      const governanceFiles = await this.githubApi.getGovernanceFiles(repoInfo.owner, repoInfo.repo);
+
+      this.updateProgress('Checking OpenSSF Best Practices badge...');
+      const openSSFBadge = await this.githubApi.getOpenSSFBadge(repoInfo.owner, repoInfo.repo);
+
+      this.updateProgress('Detecting foundation affiliation...');
+      const foundationAffiliation = await this.githubApi.detectFoundationAffiliation(repoInfo.owner, repoInfo.repo, repoData);
+
       this.updateProgress('Calculating metrics...');
 
       // Calculate all metrics
@@ -186,6 +195,9 @@ class OSSHealthAnalyzer {
         pullRequests,
         releases,
         communityProfile,
+        governanceFiles,
+        openSSFBadge,
+        foundationAffiliation,
       });
 
       // Calculate health scores

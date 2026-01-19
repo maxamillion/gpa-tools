@@ -179,7 +179,7 @@ describe('MetricCalculator', () => {
   });
 
   describe('calculateAll', () => {
-    it('should return 24 metrics', () => {
+    it('should return 25 metrics', () => {
       const mockData = {
         repository: {
           pushed_at: new Date().toISOString(),
@@ -196,10 +196,13 @@ describe('MetricCalculator', () => {
           health_percentage: 50,
           files: {},
         },
+        governanceFiles: null,
+        openSSFBadge: null,
+        foundationAffiliation: null,
       };
 
       const metrics = calculator.calculateAll(mockData);
-      expect(metrics).toHaveLength(24);
+      expect(metrics).toHaveLength(25);
     });
 
     it('should include all categories', () => {
@@ -215,6 +218,9 @@ describe('MetricCalculator', () => {
         pullRequests: { open: [], closed: [], merged: [], all: [] },
         releases: [],
         communityProfile: { files: {} },
+        governanceFiles: null,
+        openSSFBadge: null,
+        foundationAffiliation: null,
       };
 
       const metrics = calculator.calculateAll(mockData);
@@ -226,6 +232,166 @@ describe('MetricCalculator', () => {
       expect(categories.has('documentation')).toBe(true);
       expect(categories.has('security')).toBe(true);
       expect(categories.has('governance')).toBe(true);
+    });
+  });
+
+  describe('calculateGovernanceDocs', () => {
+    it('should return neutral score when no governance data', () => {
+      const result = calculator.calculateGovernanceDocs(null);
+      expect(result.score).toBe(50);
+      expect(result.displayValue).toBe('Unknown');
+    });
+
+    it('should score 50 for main governance doc', () => {
+      const governanceFiles = {
+        governance: { path: 'GOVERNANCE.md', contentLength: 1000 },
+        steering: null,
+        tsc: null,
+        owners: null,
+        maintainers: null,
+        codeowners: null,
+      };
+      const result = calculator.calculateGovernanceDocs(governanceFiles);
+      // 40 base + 10 for content > 500 chars = 50
+      expect(result.score).toBe(50);
+      expect(result.displayValue).toBe('GOVERNANCE');
+    });
+
+    it('should score 100 for full governance structure', () => {
+      const governanceFiles = {
+        governance: { path: 'GOVERNANCE.md', contentLength: 1000 },
+        steering: { path: 'STEERING.md', contentLength: 500 },
+        tsc: null,
+        owners: { path: 'OWNERS', contentLength: 200 },
+        maintainers: { path: 'MAINTAINERS.md', contentLength: 300 },
+        codeowners: null,
+      };
+      const result = calculator.calculateGovernanceDocs(governanceFiles);
+      // 40 + 10 (content) + 30 (steering) + 15 (owners) + 15 (maintainers) = 110 capped at 100
+      expect(result.score).toBe(100);
+    });
+
+    it('should score 30 for ownership files only', () => {
+      const governanceFiles = {
+        governance: null,
+        steering: null,
+        tsc: null,
+        owners: { path: 'OWNERS', contentLength: 200 },
+        maintainers: { path: 'MAINTAINERS.md', contentLength: 300 },
+        codeowners: null,
+      };
+      const result = calculator.calculateGovernanceDocs(governanceFiles);
+      // 15 (owners) + 15 (maintainers) = 30
+      expect(result.score).toBe(30);
+    });
+  });
+
+  describe('calculateOpenSSFBadge', () => {
+    it('should return 0 for no badge', () => {
+      const result = calculator.calculateOpenSSFBadge({ found: false, level: 'none' });
+      expect(result.score).toBe(0);
+      expect(result.displayValue).toBe('Not Found');
+    });
+
+    it('should return 25 for in-progress', () => {
+      const result = calculator.calculateOpenSSFBadge({ found: true, level: 'in_progress', source: 'api' });
+      expect(result.score).toBe(25);
+      expect(result.displayValue).toBe('In Progress');
+    });
+
+    it('should return 50 for passing', () => {
+      const result = calculator.calculateOpenSSFBadge({ found: true, level: 'passing', source: 'api' });
+      expect(result.score).toBe(50);
+      expect(result.displayValue).toBe('Passing');
+    });
+
+    it('should return 75 for silver', () => {
+      const result = calculator.calculateOpenSSFBadge({ found: true, level: 'silver', source: 'api' });
+      expect(result.score).toBe(75);
+      expect(result.displayValue).toBe('Silver');
+    });
+
+    it('should return 100 for gold', () => {
+      const result = calculator.calculateOpenSSFBadge({ found: true, level: 'gold', source: 'api' });
+      expect(result.score).toBe(100);
+      expect(result.displayValue).toBe('Gold');
+    });
+  });
+
+  describe('calculateFoundationAffiliation', () => {
+    it('should return 0 for no foundation', () => {
+      const result = calculator.calculateFoundationAffiliation({ foundation: null }, null);
+      expect(result.score).toBe(0);
+      expect(result.displayValue).toBe('None');
+    });
+
+    it('should return 50 for no foundation but with governance', () => {
+      const governanceFiles = {
+        governance: { path: 'GOVERNANCE.md', contentLength: 1000 },
+      };
+      const result = calculator.calculateFoundationAffiliation({ foundation: null }, governanceFiles);
+      expect(result.score).toBe(50);
+      expect(result.displayValue).toBe('Independent (with governance)');
+    });
+
+    it('should return 100 for CNCF graduated', () => {
+      const foundationData = {
+        foundation: 'cncf',
+        level: 'graduated',
+        confidence: 100,
+        source: 'organization',
+      };
+      const result = calculator.calculateFoundationAffiliation(foundationData, null);
+      expect(result.score).toBe(100);
+      expect(result.displayValue).toBe('CNCF (Graduated)');
+    });
+
+    it('should return 100 for Apache TLP', () => {
+      const foundationData = {
+        foundation: 'apache',
+        level: 'tlp',
+        confidence: 100,
+        source: 'organization',
+      };
+      const result = calculator.calculateFoundationAffiliation(foundationData, null);
+      expect(result.score).toBe(100);
+      expect(result.displayValue).toBe('Apache (TLP)');
+    });
+
+    it('should return 100 for Linux Foundation AI & Data', () => {
+      const foundationData = {
+        foundation: 'linux-foundation',
+        level: 'lfai-data',
+        confidence: 85,
+        source: 'readme',
+      };
+      const result = calculator.calculateFoundationAffiliation(foundationData, null);
+      expect(result.score).toBe(100);
+      expect(result.displayValue).toBe('Linux Foundation (LF AI & Data)');
+    });
+
+    it('should return 90 for CNCF incubating', () => {
+      const foundationData = {
+        foundation: 'cncf',
+        level: 'incubating',
+        confidence: 95,
+        source: 'topic',
+      };
+      const result = calculator.calculateFoundationAffiliation(foundationData, null);
+      expect(result.score).toBe(90);
+      expect(result.displayValue).toBe('CNCF (Incubating)');
+    });
+
+    it('should return 80 for CNCF sandbox', () => {
+      const foundationData = {
+        foundation: 'cncf',
+        level: 'sandbox',
+        confidence: 95,
+        source: 'topic',
+      };
+      const result = calculator.calculateFoundationAffiliation(foundationData, null);
+      expect(result.score).toBe(80);
+      expect(result.displayValue).toBe('CNCF (Sandbox)');
     });
   });
 });
