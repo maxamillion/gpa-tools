@@ -28,6 +28,7 @@ class OSSHealthAnalyzer {
       repoUrl: document.getElementById('repo-url'),
       githubToken: document.getElementById('github-token'),
       analyzeBtn: document.getElementById('analyze-btn'),
+      refreshBtn: document.getElementById('refresh-btn'),
       resultsSection: document.getElementById('results-section'),
       resultsContainer: document.getElementById('results-container'),
       errorSection: document.getElementById('error-section'),
@@ -36,6 +37,9 @@ class OSSHealthAnalyzer {
       loadingSection: document.getElementById('loading-section'),
       loadingProgress: document.getElementById('loading-progress'),
     };
+
+    // Track if we should bypass cache
+    this.bypassCache = false;
 
     this.init();
   }
@@ -50,6 +54,13 @@ class OSSHealthAnalyzer {
     // Check for URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const repoParam = urlParams.get('repo');
+    const noCacheParam = urlParams.get('nocache');
+
+    // Check if cache should be bypassed
+    if (noCacheParam === '1' || noCacheParam === 'true') {
+      this.bypassCache = true;
+    }
+
     if (repoParam) {
       this.elements.repoUrl.value = this.normalizeRepoUrl(repoParam);
       // Auto-analyze if repo is provided
@@ -60,6 +71,7 @@ class OSSHealthAnalyzer {
     this.elements.form.addEventListener('submit', e => this.handleSubmit(e));
     this.elements.errorDismiss.addEventListener('click', () => this.hideError());
     this.elements.githubToken.addEventListener('change', e => this.handleTokenChange(e));
+    this.elements.refreshBtn.addEventListener('click', () => this.handleRefresh());
 
     // Initialize cache
     await this.cacheManager.init();
@@ -112,7 +124,14 @@ class OSSHealthAnalyzer {
 
   async handleSubmit(e) {
     e.preventDefault();
+    this.bypassCache = false; // Normal submit uses cache
     await this.analyze();
+  }
+
+  async handleRefresh() {
+    this.bypassCache = true; // Force bypass cache
+    await this.analyze();
+    this.bypassCache = false; // Reset after refresh
   }
 
   async analyze() {
@@ -143,14 +162,16 @@ class OSSHealthAnalyzer {
       const token = this.elements.githubToken.value.trim() || null;
       this.githubApi = new GitHubApiService(token);
 
-      // Check cache first
+      // Check cache first (unless bypassing)
       const cacheKey = `${repoInfo.owner}/${repoInfo.repo}`;
-      const cached = await this.cacheManager.get(cacheKey);
+      if (!this.bypassCache) {
+        const cached = await this.cacheManager.get(cacheKey);
 
-      if (cached && !this.isCacheExpired(cached.timestamp)) {
-        this.renderResults(cached.data);
-        this.hideLoading();
-        return;
+        if (cached && !this.isCacheExpired(cached.timestamp)) {
+          this.renderResults(cached.data);
+          this.hideLoading();
+          return;
+        }
       }
 
       // Fetch repository data
