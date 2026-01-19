@@ -1,169 +1,372 @@
 /**
- * Metric Definitions Configuration
- * Defines all 18 baseline metrics across 5 categories
- * Per contracts/metrics-schema.md
+ * Metric Definitions
+ *
+ * 24 baseline metrics organized into 6 categories based on:
+ * - CHAOSS (Community Health Analytics Open Source Software)
+ * - OpenSSF (Open Source Security Foundation)
+ * - CNCF (Cloud Native Computing Foundation)
+ * - Apache Software Foundation
+ * - Linux Foundation Best Practices
  */
 
-export const BASELINE_METRICS = [
-  // Activity Metrics (3)
-  {
+export const METRIC_CATEGORIES = {
+  activity: {
+    id: 'activity',
+    name: 'Activity',
+    icon: '📊',
+    description: 'Measures how actively the project is being developed',
+    weight: 0.15,
+  },
+  community: {
+    id: 'community',
+    name: 'Community',
+    icon: '👥',
+    description: 'Evaluates the health and diversity of the contributor community',
+    weight: 0.20,
+  },
+  responsiveness: {
+    id: 'responsiveness',
+    name: 'Responsiveness',
+    icon: '⚡',
+    description: 'Measures how quickly maintainers respond to issues and PRs',
+    weight: 0.20,
+  },
+  documentation: {
+    id: 'documentation',
+    name: 'Documentation',
+    icon: '📚',
+    description: 'Evaluates the completeness and quality of project documentation',
+    weight: 0.15,
+  },
+  security: {
+    id: 'security',
+    name: 'Security & Compliance',
+    icon: '🔒',
+    description: 'Checks for security policies and compliance with best practices',
+    weight: 0.20,
+  },
+  governance: {
+    id: 'governance',
+    name: 'Governance',
+    icon: '⚖️',
+    description: 'Evaluates project governance and sustainability practices',
+    weight: 0.10,
+  },
+};
+
+export const METRIC_DEFINITIONS = {
+  // ============================================================================
+  // ACTIVITY METRICS (4)
+  // ============================================================================
+
+  'commit-frequency': {
     id: 'commit-frequency',
     name: 'Commit Frequency',
     category: 'activity',
-    explanation: 'Average commits per week over the last 90 days',
-    whyItMatters: 'High commit frequency indicates active development and regular maintenance',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/commits',
+    description: 'Average commits per week over the last 90 days',
+    calculation: 'commits / weeks (90 days)',
+    type: 'numeric',
+    unit: 'commits/week',
+    higherIsBetter: true,
+    source: 'CHAOSS',
   },
-  {
+
+  'release-cadence': {
     id: 'release-cadence',
     name: 'Release Cadence',
     category: 'activity',
-    explanation: 'Average days between releases (last 5 releases)',
-    whyItMatters: 'Regular releases indicate mature release processes and active development',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/releases',
+    description: 'Average days between releases',
+    calculation: 'Average days between last 5 releases',
+    type: 'numeric',
+    unit: 'days',
+    higherIsBetter: false,
+    source: 'CHAOSS',
   },
-  {
+
+  'last-activity': {
     id: 'last-activity',
     name: 'Last Activity',
     category: 'activity',
-    explanation: 'Days since last commit to default branch',
-    whyItMatters: 'Recent activity indicates the project is actively maintained',
-    dataSource: 'GitHub API: /repos/{owner}/{repo} (pushed_at)',
+    description: 'Days since the last commit',
+    calculation: 'today - last_commit_date',
+    type: 'numeric',
+    unit: 'days ago',
+    higherIsBetter: false,
+    source: 'CHAOSS',
   },
 
-  // Community Metrics (3)
-  {
+  'pr-velocity': {
+    id: 'pr-velocity',
+    name: 'PR Velocity',
+    category: 'activity',
+    description: 'Pull requests merged per month',
+    calculation: 'merged_prs / months (90 days)',
+    type: 'numeric',
+    unit: 'PRs/month',
+    higherIsBetter: true,
+    source: 'CHAOSS',
+  },
+
+  // ============================================================================
+  // COMMUNITY METRICS (5)
+  // ============================================================================
+
+  'contributor-count': {
     id: 'contributor-count',
     name: 'Contributor Count',
     category: 'community',
-    explanation: 'Total number of unique contributors',
-    whyItMatters: 'More contributors indicates a healthy, diverse community',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/contributors',
+    description: 'Total unique contributors to the repository',
+    calculation: 'Count of distinct authors',
+    type: 'numeric',
+    unit: 'contributors',
+    higherIsBetter: true,
+    source: 'CHAOSS',
   },
-  {
-    id: 'new-contributors',
-    name: 'New Contributors (90 days)',
+
+  'bus-factor': {
+    id: 'bus-factor',
+    name: 'Bus Factor',
     category: 'community',
-    explanation: 'Number of first-time contributors in last 90 days',
-    whyItMatters: 'New contributors indicate growing community and welcoming environment',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/commits',
+    description: 'Minimum contributors responsible for 50% of commits',
+    calculation: 'Top N contributors covering 50% of commits',
+    type: 'numeric',
+    unit: 'contributors',
+    higherIsBetter: true,
+    source: 'CHAOSS',
   },
-  {
+
+  'new-contributors': {
+    id: 'new-contributors',
+    name: 'New Contributors',
+    category: 'community',
+    description: 'First-time contributors in the last 90 days',
+    calculation: 'Count of new authors in 90-day period',
+    type: 'numeric',
+    unit: 'new contributors',
+    higherIsBetter: true,
+    source: 'CHAOSS',
+  },
+
+  'org-diversity': {
+    id: 'org-diversity',
+    name: 'Organization Diversity',
+    category: 'community',
+    description: 'Number of distinct organizations (email domains)',
+    calculation: 'Unique email domains of contributors',
+    type: 'numeric',
+    unit: 'organizations',
+    higherIsBetter: true,
+    source: 'Apache',
+  },
+
+  'pr-merge-rate': {
     id: 'pr-merge-rate',
     name: 'PR Merge Rate',
     category: 'community',
-    explanation: 'Percentage of pull requests that get merged',
-    whyItMatters: 'High merge rate indicates active maintainers and welcoming contribution process',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/pulls',
+    description: 'Percentage of pull requests that are merged',
+    calculation: 'merged / (merged + closed_unmerged)',
+    type: 'percentage',
+    unit: '%',
+    higherIsBetter: true,
+    source: 'CHAOSS',
   },
 
-  // Maintenance Metrics (4)
-  {
-    id: 'open-issues-ratio',
-    name: 'Open Issues Ratio',
-    category: 'maintenance',
-    explanation: 'Percentage of issues currently open',
-    whyItMatters: 'Lower ratio indicates good issue management and responsiveness',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/issues',
-  },
-  {
+  // ============================================================================
+  // RESPONSIVENESS METRICS (4)
+  // ============================================================================
+
+  'issue-response-time': {
     id: 'issue-response-time',
     name: 'Issue Response Time',
-    category: 'maintenance',
-    explanation: 'Median hours until first response on issues',
-    whyItMatters: 'Fast response times indicate active maintainers and good support',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/issues/comments',
-  },
-  {
-    id: 'stale-issues-percentage',
-    name: 'Stale Issues Percentage',
-    category: 'maintenance',
-    explanation: 'Percentage of open issues with no activity in 90+ days',
-    whyItMatters: 'Lower percentage indicates active issue triage and maintenance',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/issues',
-  },
-  {
-    id: 'average-time-to-close',
-    name: 'Average Time to Close',
-    category: 'maintenance',
-    explanation: 'Average days to close issues',
-    whyItMatters: 'Faster closure indicates efficient issue resolution',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/issues',
+    category: 'responsiveness',
+    description: 'Median hours to first response on issues',
+    calculation: 'Median(first_comment - issue_created)',
+    type: 'numeric',
+    unit: 'hours',
+    higherIsBetter: false,
+    source: 'CHAOSS',
   },
 
-  // Documentation Metrics (3)
-  {
-    id: 'readme-quality',
-    name: 'README Quality Score',
-    category: 'documentation',
-    explanation: 'Score based on README completeness (0-5 points)',
-    whyItMatters: 'Quality README helps users understand and adopt the project',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/readme',
+  'issue-close-time': {
+    id: 'issue-close-time',
+    name: 'Issue Close Time',
+    category: 'responsiveness',
+    description: 'Median days to close issues',
+    calculation: 'Median(closed_at - created_at)',
+    type: 'numeric',
+    unit: 'days',
+    higherIsBetter: false,
+    source: 'CHAOSS',
   },
-  {
-    id: 'documentation-directory',
+
+  'stale-issues-ratio': {
+    id: 'stale-issues-ratio',
+    name: 'Stale Issues Ratio',
+    category: 'responsiveness',
+    description: 'Percentage of open issues inactive for >90 days',
+    calculation: 'stale_issues / open_issues',
+    type: 'percentage',
+    unit: '%',
+    higherIsBetter: false,
+    source: 'CHAOSS',
+  },
+
+  'open-issues-ratio': {
+    id: 'open-issues-ratio',
+    name: 'Open Issues Ratio',
+    category: 'responsiveness',
+    description: 'Percentage of all issues that are still open',
+    calculation: 'open_issues / total_issues',
+    type: 'percentage',
+    unit: '%',
+    higherIsBetter: false,
+    source: 'CHAOSS',
+  },
+
+  // ============================================================================
+  // DOCUMENTATION METRICS (4)
+  // ============================================================================
+
+  'readme-quality': {
+    id: 'readme-quality',
+    name: 'README Quality',
+    category: 'documentation',
+    description: 'Completeness of README file',
+    calculation: 'Score based on sections, badges, examples (0-5)',
+    type: 'score',
+    unit: 'score',
+    higherIsBetter: true,
+    source: 'Linux Foundation',
+  },
+
+  'contributing-guide': {
+    id: 'contributing-guide',
+    name: 'Contributing Guide',
+    category: 'documentation',
+    description: 'Presence of CONTRIBUTING.md file',
+    calculation: 'File existence check',
+    type: 'boolean',
+    unit: 'exists',
+    higherIsBetter: true,
+    source: 'Linux Foundation',
+  },
+
+  'docs-directory': {
+    id: 'docs-directory',
     name: 'Documentation Directory',
     category: 'documentation',
-    explanation: 'Presence of /docs or /documentation directory',
-    whyItMatters: 'Dedicated docs indicate comprehensive documentation beyond README',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/contents/docs',
-  },
-  {
-    id: 'wiki-presence',
-    name: 'Wiki Presence',
-    category: 'documentation',
-    explanation: 'Whether repository has wiki enabled',
-    whyItMatters: 'Wiki provides additional documentation and community knowledge',
-    dataSource: 'GitHub API: /repos/{owner}/{repo} (has_wiki)',
+    description: 'Presence of /docs folder or wiki',
+    calculation: 'Directory or wiki check',
+    type: 'boolean',
+    unit: 'exists',
+    higherIsBetter: true,
+    source: 'Linux Foundation',
   },
 
-  // Security & Governance Metrics (5)
-  {
+  'changelog': {
+    id: 'changelog',
+    name: 'Changelog',
+    category: 'documentation',
+    description: 'Presence of CHANGELOG.md file',
+    calculation: 'File existence check',
+    type: 'boolean',
+    unit: 'exists',
+    higherIsBetter: true,
+    source: 'Keep a Changelog',
+  },
+
+  // ============================================================================
+  // SECURITY & COMPLIANCE METRICS (4)
+  // ============================================================================
+
+  'security-policy': {
     id: 'security-policy',
     name: 'Security Policy',
     category: 'security',
-    explanation: 'Presence of SECURITY.md file',
-    whyItMatters: 'Security policy shows commitment to handling vulnerabilities responsibly',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/community/profile',
+    description: 'Presence of SECURITY.md file',
+    calculation: 'File existence check',
+    type: 'boolean',
+    unit: 'exists',
+    higherIsBetter: true,
+    source: 'OpenSSF',
   },
-  {
-    id: 'code-of-conduct',
-    name: 'Code of Conduct',
-    category: 'security',
-    explanation: 'Presence of CODE_OF_CONDUCT.md file',
-    whyItMatters: 'Code of conduct indicates welcoming and inclusive community',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/community/profile',
-  },
-  {
-    id: 'contributing-guidelines',
-    name: 'Contributing Guidelines',
-    category: 'security',
-    explanation: 'Presence of CONTRIBUTING.md file',
-    whyItMatters: 'Contributing guidelines help new contributors get started',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/community/profile',
-  },
-  {
+
+  'license': {
     id: 'license',
     name: 'License',
     category: 'security',
-    explanation: 'Presence of LICENSE file',
-    whyItMatters: 'License clarifies usage rights and protects contributors',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/community/profile',
+    description: 'Presence of recognized OSS license',
+    calculation: 'License API check',
+    type: 'boolean',
+    unit: 'exists',
+    higherIsBetter: true,
+    source: 'OSI',
   },
-  {
-    id: 'bus-factor',
-    name: 'Bus Factor',
+
+  'code-of-conduct': {
+    id: 'code-of-conduct',
+    name: 'Code of Conduct',
     category: 'security',
-    explanation: 'Number of contributors accounting for 50% of commits',
-    whyItMatters: 'Higher bus factor reduces risk of project abandonment',
-    dataSource: 'GitHub API: /repos/{owner}/{repo}/contributors',
+    description: 'Presence of CODE_OF_CONDUCT.md file',
+    calculation: 'File existence check',
+    type: 'boolean',
+    unit: 'exists',
+    higherIsBetter: true,
+    source: 'Contributor Covenant',
   },
-];
 
-export function getMetricDefinition(id) {
-  return BASELINE_METRICS.find((m) => m.id === id);
-}
+  'vulnerability-reporting': {
+    id: 'vulnerability-reporting',
+    name: 'Vulnerability Reporting',
+    category: 'security',
+    description: 'Private security vulnerability reporting process',
+    calculation: 'SECURITY.md content analysis',
+    type: 'boolean',
+    unit: 'exists',
+    higherIsBetter: true,
+    source: 'OpenSSF',
+  },
 
-export function getMetricsByCategory(category) {
-  return BASELINE_METRICS.filter((m) => m.category === category);
-}
+  // ============================================================================
+  // GOVERNANCE METRICS (3)
+  // ============================================================================
+
+  'governance-docs': {
+    id: 'governance-docs',
+    name: 'Governance Documentation',
+    category: 'governance',
+    description: 'Presence of GOVERNANCE.md or similar',
+    calculation: 'File existence check',
+    type: 'boolean',
+    unit: 'exists',
+    higherIsBetter: true,
+    source: 'CNCF',
+  },
+
+  'maintainer-count': {
+    id: 'maintainer-count',
+    name: 'Active Maintainers',
+    category: 'governance',
+    description: 'Contributors with recent merge activity (90 days)',
+    calculation: 'Count of contributors with merge rights',
+    type: 'numeric',
+    unit: 'maintainers',
+    higherIsBetter: true,
+    source: 'Apache',
+  },
+
+  'openssf-badge': {
+    id: 'openssf-badge',
+    name: 'OpenSSF Best Practices',
+    category: 'governance',
+    description: 'OpenSSF Best Practices badge status',
+    calculation: 'Badge API or README scan',
+    type: 'badge',
+    unit: 'level',
+    higherIsBetter: true,
+    source: 'OpenSSF',
+  },
+};
+
+// Export as array for iteration
+export const METRICS_LIST = Object.values(METRIC_DEFINITIONS);

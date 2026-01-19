@@ -1,125 +1,283 @@
 /**
- * Scoring Thresholds Configuration
- * Defines the threshold values for scoring each metric
- * Per contracts/metrics-schema.md
+ * Scoring Thresholds
+ *
+ * Defines thresholds for converting raw metric values to scores.
+ * Based on industry benchmarks from CHAOSS, OpenSSF, and other sources.
  */
 
-export const THRESHOLDS = {
+/**
+ * Threshold levels for scoring
+ * Each metric maps to 4 thresholds: [Poor, Fair, Good, Excellent]
+ * Score interpolates linearly between thresholds
+ */
+export const METRIC_THRESHOLDS = {
+  // ============================================================================
+  // ACTIVITY METRICS
+  // ============================================================================
+
   'commit-frequency': {
-    excellent: { min: 20, label: 'Excellent (≥20/week)' },
-    good: { min: 5, max: 20, label: 'Good (5-20/week)' },
-    fair: { min: 1, max: 5, label: 'Fair (1-5/week)' },
-    poor: { max: 1, label: 'Poor (<1/week)' },
+    // Commits per week
+    // <1 Poor, 1-5 Fair, 5-20 Good, >20 Excellent
+    thresholds: [1, 5, 20],
+    scores: [25, 50, 75, 100],
+    direction: 'higher-is-better',
   },
 
   'release-cadence': {
-    excellent: { max: 30, label: 'Excellent (≤30 days)' },
-    good: { min: 30, max: 90, label: 'Good (30-90 days)' },
-    fair: { min: 90, max: 180, label: 'Fair (90-180 days)' },
-    poor: { min: 180, label: 'Poor (>180 days)' },
+    // Days between releases
+    // >180 Poor, 90-180 Fair, 30-90 Good, <30 Excellent
+    thresholds: [180, 90, 30],
+    scores: [25, 50, 75, 100],
+    direction: 'lower-is-better',
   },
 
   'last-activity': {
-    excellent: { max: 7, label: 'Excellent (≤7 days)' },
-    good: { min: 7, max: 30, label: 'Good (7-30 days)' },
-    fair: { min: 30, max: 90, label: 'Fair (30-90 days)' },
-    poor: { min: 90, label: 'Poor (>90 days)' },
+    // Days since last commit
+    // >90 Poor, 30-90 Fair, 7-30 Good, <7 Excellent
+    thresholds: [90, 30, 7],
+    scores: [25, 50, 75, 100],
+    direction: 'lower-is-better',
   },
+
+  'pr-velocity': {
+    // PRs merged per month
+    // <2 Poor, 2-10 Fair, 10-30 Good, >30 Excellent
+    thresholds: [2, 10, 30],
+    scores: [25, 50, 75, 100],
+    direction: 'higher-is-better',
+  },
+
+  // ============================================================================
+  // COMMUNITY METRICS
+  // ============================================================================
 
   'contributor-count': {
-    excellent: { min: 50, label: 'Excellent (≥50)' },
-    good: { min: 10, max: 50, label: 'Good (10-50)' },
-    fair: { min: 3, max: 10, label: 'Fair (3-10)' },
-    poor: { max: 3, label: 'Poor (<3)' },
-  },
-
-  'new-contributors': {
-    excellent: { min: 5, label: 'Excellent (≥5)' },
-    good: { min: 2, max: 5, label: 'Good (2-5)' },
-    fair: { min: 1, max: 2, label: 'Fair (1)' },
-    poor: { max: 1, label: 'Poor (0)' },
-  },
-
-  'pr-merge-rate': {
-    excellent: { min: 70, label: 'Excellent (≥70%)' },
-    good: { min: 50, max: 70, label: 'Good (50-70%)' },
-    fair: { min: 30, max: 50, label: 'Fair (30-50%)' },
-    poor: { max: 30, label: 'Poor (<30%)' },
-  },
-
-  'open-issues-ratio': {
-    excellent: { max: 20, label: 'Excellent (<20%)' },
-    good: { min: 20, max: 40, label: 'Good (20-40%)' },
-    fair: { min: 40, max: 60, label: 'Fair (40-60%)' },
-    poor: { min: 60, label: 'Poor (≥60%)' },
-  },
-
-  'issue-response-time': {
-    excellent: { max: 24, label: 'Excellent (<24 hours)' },
-    good: { min: 24, max: 72, label: 'Good (1-3 days)' },
-    fair: { min: 72, max: 168, label: 'Fair (3-7 days)' },
-    poor: { min: 168, label: 'Poor (>7 days)' },
-  },
-
-  'stale-issues-percentage': {
-    excellent: { max: 10, label: 'Excellent (<10%)' },
-    good: { min: 10, max: 25, label: 'Good (10-25%)' },
-    fair: { min: 25, max: 50, label: 'Fair (25-50%)' },
-    poor: { min: 50, label: 'Poor (≥50%)' },
-  },
-
-  'average-time-to-close': {
-    excellent: { max: 7, label: 'Excellent (<7 days)' },
-    good: { min: 7, max: 30, label: 'Good (7-30 days)' },
-    fair: { min: 30, max: 90, label: 'Fair (30-90 days)' },
-    poor: { min: 90, label: 'Poor (>90 days)' },
-  },
-
-  'readme-quality': {
-    excellent: { value: 5, label: 'Excellent (5/5)' },
-    good: { value: 4, label: 'Good (4/5)' },
-    fair: { value: 3, label: 'Fair (3/5)' },
-    poor: { max: 3, label: 'Poor (<3/5)' },
-  },
-
-  'documentation-directory': {
-    pass: { label: 'Present' },
-    fail: { label: 'Missing' },
-  },
-
-  'wiki-presence': {
-    pass: { label: 'Enabled' },
-    fail: { label: 'Disabled' },
-  },
-
-  'security-policy': {
-    pass: { label: 'Present' },
-    fail: { label: 'Missing' },
-  },
-
-  'code-of-conduct': {
-    pass: { label: 'Present' },
-    fail: { label: 'Missing' },
-  },
-
-  'contributing-guidelines': {
-    pass: { label: 'Present' },
-    fail: { label: 'Missing' },
-  },
-
-  license: {
-    pass: { label: 'Present' },
-    fail: { label: 'Missing' },
+    // Total unique contributors
+    // <3 Poor, 3-10 Fair, 10-50 Good, >50 Excellent
+    thresholds: [3, 10, 50],
+    scores: [25, 50, 75, 100],
+    direction: 'higher-is-better',
   },
 
   'bus-factor': {
-    excellent: { min: 5, label: 'Excellent (≥5)' },
-    good: { min: 3, max: 5, label: 'Good (3-5)' },
-    fair: { value: 2, label: 'Fair (2)' },
-    poor: { max: 2, label: 'Poor (1)' },
+    // Contributors for 50% of commits
+    // 1 Critical, 2 Poor, 3-4 Fair, >5 Excellent
+    thresholds: [1, 2, 4, 5],
+    scores: [0, 25, 50, 75, 100],
+    direction: 'higher-is-better',
+    isCritical: true,
+  },
+
+  'new-contributors': {
+    // First-time contributors (90d)
+    // 0 Poor, 1-3 Fair, 3-10 Good, >10 Excellent
+    thresholds: [1, 3, 10],
+    scores: [25, 50, 75, 100],
+    direction: 'higher-is-better',
+  },
+
+  'org-diversity': {
+    // Distinct organizations
+    // 1 Poor, 2 Fair, 3-5 Good, >5 Excellent
+    thresholds: [1, 2, 5],
+    scores: [25, 50, 75, 100],
+    direction: 'higher-is-better',
+  },
+
+  'pr-merge-rate': {
+    // Percentage of PRs merged
+    // <50% Poor, 50-70% Fair, 70-85% Good, >85% Excellent
+    thresholds: [50, 70, 85],
+    scores: [25, 50, 75, 100],
+    direction: 'higher-is-better',
+  },
+
+  // ============================================================================
+  // RESPONSIVENESS METRICS
+  // ============================================================================
+
+  'issue-response-time': {
+    // Hours to first response
+    // >168h Poor, 72-168h Fair, 24-72h Good, <24h Excellent
+    thresholds: [168, 72, 24],
+    scores: [25, 50, 75, 100],
+    direction: 'lower-is-better',
+  },
+
+  'issue-close-time': {
+    // Days to close issues
+    // >90d Poor, 30-90d Fair, 7-30d Good, <7d Excellent
+    thresholds: [90, 30, 7],
+    scores: [25, 50, 75, 100],
+    direction: 'lower-is-better',
+  },
+
+  'stale-issues-ratio': {
+    // % issues inactive >90 days
+    // >50% Poor, 25-50% Fair, 10-25% Good, <10% Excellent
+    thresholds: [50, 25, 10],
+    scores: [25, 50, 75, 100],
+    direction: 'lower-is-better',
+  },
+
+  'open-issues-ratio': {
+    // % of all issues still open
+    // >70% Poor, 50-70% Fair, 30-50% Good, <30% Excellent
+    thresholds: [70, 50, 30],
+    scores: [25, 50, 75, 100],
+    direction: 'lower-is-better',
+  },
+
+  // ============================================================================
+  // DOCUMENTATION METRICS
+  // ============================================================================
+
+  'readme-quality': {
+    // 0-5 score
+    thresholds: [1, 2, 3, 4],
+    scores: [0, 25, 50, 75, 100],
+    direction: 'higher-is-better',
+  },
+
+  'contributing-guide': {
+    // Boolean - pass/fail
+    type: 'boolean',
+    passScore: 100,
+    failScore: 0,
+  },
+
+  'docs-directory': {
+    // Boolean - pass/fail
+    type: 'boolean',
+    passScore: 100,
+    failScore: 0,
+  },
+
+  'changelog': {
+    // Boolean - pass/fail
+    type: 'boolean',
+    passScore: 100,
+    failScore: 0,
+  },
+
+  // ============================================================================
+  // SECURITY METRICS
+  // ============================================================================
+
+  'security-policy': {
+    // Boolean - pass/fail
+    type: 'boolean',
+    passScore: 100,
+    failScore: 0,
+  },
+
+  'license': {
+    // Boolean - pass/fail
+    type: 'boolean',
+    passScore: 100,
+    failScore: 0,
+  },
+
+  'code-of-conduct': {
+    // Boolean - pass/fail
+    type: 'boolean',
+    passScore: 100,
+    failScore: 0,
+  },
+
+  'vulnerability-reporting': {
+    // Boolean - pass/fail
+    type: 'boolean',
+    passScore: 100,
+    failScore: 0,
+  },
+
+  // ============================================================================
+  // GOVERNANCE METRICS
+  // ============================================================================
+
+  'governance-docs': {
+    // Boolean - pass/fail
+    type: 'boolean',
+    passScore: 100,
+    failScore: 0,
+  },
+
+  'maintainer-count': {
+    // Active maintainers
+    // <2 Poor, 2-3 Fair, 4-6 Good, >6 Excellent
+    thresholds: [2, 3, 6],
+    scores: [25, 50, 75, 100],
+    direction: 'higher-is-better',
+  },
+
+  'openssf-badge': {
+    // Badge level: none, passing, silver, gold
+    type: 'badge',
+    levels: {
+      'none': 0,
+      'in-progress': 25,
+      'passing': 50,
+      'silver': 75,
+      'gold': 100,
+    },
   },
 };
 
-export function getThreshold(metricId) {
-  return THRESHOLDS[metricId];
+/**
+ * Grade thresholds for letter grades
+ */
+export const GRADE_THRESHOLDS = {
+  'A+': { min: 95, color: 'grade-a' },
+  'A': { min: 90, color: 'grade-a' },
+  'A-': { min: 85, color: 'grade-a' },
+  'B+': { min: 80, color: 'grade-b' },
+  'B': { min: 75, color: 'grade-b' },
+  'B-': { min: 70, color: 'grade-b' },
+  'C+': { min: 65, color: 'grade-c' },
+  'C': { min: 60, color: 'grade-c' },
+  'C-': { min: 55, color: 'grade-c' },
+  'D+': { min: 50, color: 'grade-d' },
+  'D': { min: 45, color: 'grade-d' },
+  'D-': { min: 40, color: 'grade-d' },
+  'F': { min: 0, color: 'grade-f' },
+};
+
+/**
+ * Score level labels
+ */
+export const SCORE_LEVELS = {
+  excellent: { min: 80, label: 'Excellent', class: 'score-excellent' },
+  good: { min: 60, label: 'Good', class: 'score-good' },
+  fair: { min: 40, label: 'Fair', class: 'score-fair' },
+  poor: { min: 20, label: 'Poor', class: 'score-poor' },
+  critical: { min: 0, label: 'Critical', class: 'score-critical' },
+};
+
+/**
+ * Get letter grade for a score
+ * @param {number} score - Score from 0-100
+ * @returns {Object} Grade info { grade, color }
+ */
+export function getGrade(score) {
+  for (const [grade, info] of Object.entries(GRADE_THRESHOLDS)) {
+    if (score >= info.min) {
+      return { grade, color: info.color };
+    }
+  }
+  return { grade: 'F', color: 'grade-f' };
+}
+
+/**
+ * Get score level info
+ * @param {number} score - Score from 0-100
+ * @returns {Object} Level info { label, class }
+ */
+export function getScoreLevel(score) {
+  for (const info of Object.values(SCORE_LEVELS)) {
+    if (score >= info.min) {
+      return { label: info.label, class: info.class };
+    }
+  }
+  return { label: 'Critical', class: 'score-critical' };
 }

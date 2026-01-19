@@ -1,285 +1,227 @@
 /**
- * HealthScoreCard Web Component
- * Displays overall repository health score with category breakdown
+ * Health Score Card Web Component
+ *
+ * Displays the overall health score and grade for a repository.
  */
 
 export class HealthScoreCard extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
-    this._score = null;
-    this._grade = null;
-    this._categoryBreakdown = null;
+    this.data = null;
   }
 
-  get score() {
-    return this._score;
-  }
-
-  set score(value) {
-    this._score = value;
+  /**
+   * Set the component data and render
+   * @param {Object} data - Repository analysis results
+   */
+  setData(data) {
+    this.data = data;
     this.render();
   }
 
-  get grade() {
-    return this._grade;
-  }
-
-  set grade(value) {
-    this._grade = value;
-    this.render();
-  }
-
-  get categoryBreakdown() {
-    return this._categoryBreakdown;
-  }
-
-  set categoryBreakdown(value) {
-    this._categoryBreakdown = value;
-    this.render();
-  }
-
-  connectedCallback() {
-    this.render();
-  }
-
-  // eslint-disable-next-line max-lines-per-function -- Web Component render methods combine styles and markup
   render() {
-    if (this._score === null) {
-      this.shadowRoot.innerHTML = '';
+    if (!this.data) {
       return;
     }
 
-    const gradeClass = this.getGradeClass(this._grade);
-    const categoryHTML = this.renderCategoryBreakdown();
+    const { repository, healthScore } = this.data;
+    const gradeClass = healthScore.gradeColor.replace('grade-', '');
 
-    this.shadowRoot.innerHTML = `
-      <style>
-        :host {
-          display: block;
-        }
-
-        .health-card {
-          background: linear-gradient(135deg, var(--color-surface, #ffffff) 0%, var(--color-surface-alt, #f6f8fa) 100%);
-          border: 2px solid var(--color-border, #e1e4e8);
-          border-radius: var(--border-radius-lg, 12px);
-          padding: var(--spacing-xl, 2rem);
-          box-shadow: var(--shadow-lg, 0 8px 16px rgba(0, 0, 0, 0.1));
-          margin-bottom: var(--spacing-lg, 1.5rem);
-        }
-
-        .card-title {
-          margin: 0 0 var(--spacing-lg, 1.5rem);
-          font-size: var(--font-size-2xl, 2rem);
-          font-weight: 700;
-          color: var(--color-text-primary, #24292e);
-          text-align: center;
-        }
-
-        .score-display {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: var(--spacing-lg, 1.5rem);
-          margin-bottom: var(--spacing-xl, 2rem);
-        }
-
-        .health-score {
-          font-size: var(--font-size-4xl, 3.5rem);
-          font-weight: 800;
-          color: var(--color-text-primary, #24292e);
-        }
-
-        .score-separator {
-          font-size: var(--font-size-2xl, 2rem);
-          color: var(--color-text-tertiary, #6a737d);
-        }
-
-        .health-grade {
-          display: inline-block;
-          padding: var(--spacing-md, 1rem) var(--spacing-lg, 1.5rem);
-          border-radius: var(--border-radius, 8px);
-          font-size: var(--font-size-2xl, 2rem);
-          font-weight: 700;
-          text-transform: uppercase;
-        }
-
-        .progress-bar {
-          width: 100%;
-          height: 24px;
-          background-color: var(--color-surface-alt, #f6f8fa);
-          border-radius: var(--border-radius-lg, 12px);
-          overflow: hidden;
-          margin-bottom: var(--spacing-xl, 2rem);
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .progress-fill {
-          height: 100%;
-          background: linear-gradient(90deg, var(--color-primary, #0366d6) 0%, var(--color-primary-light, #58a6ff) 100%);
-          border-radius: var(--border-radius-lg, 12px);
-          transition: width 0.6s ease, background-color 0.3s ease;
-        }
-
-        .category-breakdown {
-          margin-top: var(--spacing-lg, 1.5rem);
-        }
-
-        .category-breakdown-title {
-          font-size: var(--font-size-lg, 1.125rem);
-          font-weight: 600;
-          color: var(--color-text-primary, #24292e);
-          margin-bottom: var(--spacing-md, 1rem);
-        }
-
-        .category-list {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: var(--spacing-md, 1rem);
-        }
-
-        .category-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
-          background: var(--color-surface, #ffffff);
-          border: 1px solid var(--color-border, #e1e4e8);
-          border-radius: var(--border-radius, 8px);
-        }
-
-        .category-name {
-          font-size: var(--font-size-md, 1rem);
-          font-weight: 500;
-          color: var(--color-text-primary, #24292e);
-          text-transform: capitalize;
-        }
-
-        .category-score {
-          font-size: var(--font-size-md, 1rem);
-          font-weight: 600;
-          color: var(--color-text-secondary, #586069);
-        }
-
-        /* Grade-specific styles */
-        .grade-a-plus .health-grade,
-        .grade-a .health-grade {
-          background-color: var(--color-success-light, #dcffe4);
-          color: var(--color-success-dark, #22863a);
-          border: 2px solid var(--color-success, #28a745);
-        }
-
-        .grade-a-plus .progress-fill,
-        .grade-a .progress-fill {
-          background: linear-gradient(90deg, var(--color-success, #28a745) 0%, var(--color-success-light, #dcffe4) 100%);
-        }
-
-        .grade-b .health-grade {
-          background-color: var(--color-info-light, #dbedff);
-          color: var(--color-info-dark, #005cc5);
-          border: 2px solid var(--color-info, #0366d6);
-        }
-
-        .grade-b .progress-fill {
-          background: linear-gradient(90deg, var(--color-info, #0366d6) 0%, var(--color-info-light, #dbedff) 100%);
-        }
-
-        .grade-c .health-grade {
-          background-color: var(--color-warning-light, #fff5b1);
-          color: var(--color-warning-dark, #735c0f);
-          border: 2px solid var(--color-warning, #ffd33d);
-        }
-
-        .grade-c .progress-fill {
-          background: linear-gradient(90deg, var(--color-warning, #ffd33d) 0%, var(--color-warning-light, #fff5b1) 100%);
-        }
-
-        .grade-d .health-grade,
-        .grade-f .health-grade {
-          background-color: var(--color-danger-light, #ffe3e6);
-          color: var(--color-danger-dark, #cb2431);
-          border: 2px solid var(--color-danger, #d73a49);
-        }
-
-        .grade-d .progress-fill,
-        .grade-f .progress-fill {
-          background: linear-gradient(90deg, var(--color-danger, #d73a49) 0%, var(--color-danger-light, #ffe3e6) 100%);
-        }
-      </style>
-
-      <section
-        class="health-card ${gradeClass}"
-        role="region"
-        aria-label="Overall health score: ${this._score} out of 100, grade ${this._grade}"
-      >
-        <h2 class="card-title">Overall Health Score</h2>
-
-        <div class="score-display">
-          <span class="health-score">${this._score}</span>
-          <span class="score-separator">/</span>
-          <span class="score-separator">100</span>
-          <span class="health-grade">${this._grade}</span>
+    this.innerHTML = `
+      <div class="health-score-card">
+        <div class="repo-info">
+          <h2 class="repo-name">
+            <a href="${repository.url}" target="_blank" rel="noopener">
+              ${this.escapeHtml(repository.fullName)}
+            </a>
+          </h2>
+          ${repository.description ? `
+            <p class="repo-description">${this.escapeHtml(repository.description)}</p>
+          ` : ''}
+          <div class="repo-stats">
+            <span class="stat" title="Stars">
+              <span aria-hidden="true">⭐</span> ${this.formatNumber(repository.stars)}
+            </span>
+            <span class="stat" title="Forks">
+              <span aria-hidden="true">🍴</span> ${this.formatNumber(repository.forks)}
+            </span>
+          </div>
         </div>
 
-        <div
-          class="progress-bar"
-          role="progressbar"
-          aria-valuenow="${this._score}"
-          aria-valuemin="0"
-          aria-valuemax="100"
-        >
-          <div class="progress-fill" style="width: ${this._score}%"></div>
+        <div class="score-display" role="img" aria-label="Health Score: ${healthScore.score} out of 100, Grade: ${healthScore.grade}">
+          <div class="grade-badge grade-${gradeClass}" aria-hidden="true">
+            ${healthScore.grade}
+          </div>
+          <div class="score-details">
+            <div class="score-value">${healthScore.score}</div>
+            <div class="score-label">Health Score</div>
+          </div>
         </div>
 
-        ${categoryHTML}
-      </section>
+        <div class="progress-bar" role="progressbar" aria-valuenow="${healthScore.score}" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-fill grade-${gradeClass}" style="width: ${healthScore.score}%"></div>
+        </div>
+
+        ${this.renderSummary(healthScore.summary)}
+      </div>
     `;
+
+    this.addStyles();
   }
 
-  renderCategoryBreakdown() {
-    if (!this._categoryBreakdown) {
+  renderSummary(summary) {
+    if (!summary) {
       return '';
     }
 
-    const categories = Object.entries(this._categoryBreakdown)
-      .map(
-        ([name, data]) => `
-        <div class="category-item">
-          <span class="category-name">${this.formatCategoryName(name)}</span>
-          <span class="category-score">${data.score}/100</span>
-        </div>
-      `
-      )
-      .join('');
+    let html = `<div class="summary-section">`;
 
-    return `
-      <div class="category-breakdown">
-        <h3 class="category-breakdown-title">Category Breakdown</h3>
-        <div class="category-list">
-          ${categories}
+    if (summary.text) {
+      html += `<p class="summary-text">${this.escapeHtml(summary.text)}</p>`;
+    }
+
+    if (summary.strengths?.length > 0) {
+      html += `
+        <div class="summary-list strengths">
+          <h4 class="summary-heading">
+            <span aria-hidden="true">💪</span> Strengths
+          </h4>
+          <ul>
+            ${summary.strengths.map(s => `
+              <li>
+                <span aria-hidden="true">${s.icon}</span>
+                ${this.escapeHtml(s.category)} (${s.score})
+              </li>
+            `).join('')}
+          </ul>
         </div>
-      </div>
+      `;
+    }
+
+    if (summary.improvements?.length > 0) {
+      html += `
+        <div class="summary-list improvements">
+          <h4 class="summary-heading">
+            <span aria-hidden="true">📈</span> Areas for Improvement
+          </h4>
+          <ul>
+            ${summary.improvements.map(s => `
+              <li>
+                <span aria-hidden="true">${s.icon}</span>
+                ${this.escapeHtml(s.category)} (${s.score})
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    html += `</div>`;
+    return html;
+  }
+
+  addStyles() {
+    // Add component-specific styles if not already present
+    if (document.querySelector('#health-score-card-styles')) {
+      return;
+    }
+
+    const style = document.createElement('style');
+    style.id = 'health-score-card-styles';
+    style.textContent = `
+      .repo-stats {
+        display: flex;
+        gap: var(--space-4);
+        justify-content: center;
+        margin-top: var(--space-3);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-secondary);
+      }
+
+      .stat {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+      }
+
+      .score-details {
+        text-align: left;
+      }
+
+      .summary-section {
+        margin-top: var(--space-6);
+        padding-top: var(--space-6);
+        border-top: 1px solid var(--color-border);
+        text-align: left;
+      }
+
+      .summary-text {
+        color: var(--color-text-secondary);
+        margin-bottom: var(--space-4);
+      }
+
+      .summary-list {
+        margin-bottom: var(--space-4);
+      }
+
+      .summary-list:last-child {
+        margin-bottom: 0;
+      }
+
+      .summary-heading {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-primary);
+        margin-bottom: var(--space-2);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+      }
+
+      .summary-list ul {
+        list-style: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+      }
+
+      .summary-list li {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        padding: var(--space-1) var(--space-3);
+        background: var(--color-bg-tertiary);
+        border-radius: var(--radius-full);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-secondary);
+      }
+
+      .strengths li {
+        background: var(--color-success-bg);
+        color: var(--color-success);
+      }
+
+      .improvements li {
+        background: var(--color-warning-bg);
+        color: var(--color-warning);
+      }
     `;
+    document.head.appendChild(style);
   }
 
-  formatCategoryName(name) {
-    return name.charAt(0).toUpperCase() + name.slice(1);
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
-  getGradeClass(grade) {
-    if (!grade) return '';
-
-    const gradeMap = {
-      'A+': 'grade-a-plus',
-      'A': 'grade-a',
-      'B': 'grade-b',
-      'C': 'grade-c',
-      'D': 'grade-d',
-      'F': 'grade-f',
-    };
-    return gradeMap[grade] || '';
+  formatNumber(num) {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
   }
 }
-
-// Register the custom element
-customElements.define('health-score-card', HealthScoreCard);

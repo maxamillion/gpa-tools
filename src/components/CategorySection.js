@@ -1,156 +1,137 @@
 /**
- * CategorySection Web Component
- * Displays metrics grouped by category with statistics
+ * Category Section Web Component
+ *
+ * Displays a category of metrics with expandable details.
  */
-
-import './MetricDisplay.js';
 
 export class CategorySection extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
-    this._category = null;
-    this._metrics = null;
+    this.data = null;
+    this.isOpen = false;
   }
 
-  get category() {
-    return this._category;
-  }
-
-  set category(value) {
-    this._category = value;
+  /**
+   * Set the component data and render
+   * @param {Object} data - Category data with metrics
+   */
+  setData(data) {
+    this.data = data;
     this.render();
   }
 
-  get metrics() {
-    return this._metrics;
-  }
-
-  set metrics(value) {
-    this._metrics = value;
-    this.render();
-  }
-
-  connectedCallback() {
-    this.render();
-  }
-
-  // eslint-disable-next-line max-lines-per-function -- Web Component render methods combine styles and markup
   render() {
-    if (!this._category || !this._metrics) {
-      this.shadowRoot.innerHTML = '';
+    if (!this.data) {
       return;
     }
 
-    const categoryTitle = this.getCategoryTitle(this._category);
-    const stats = this.calculateStats();
+    const { name, icon, description, grade, gradeColor, weight, metrics } = this.data;
+    const gradeClass = gradeColor.replace('grade-', '');
 
-    this.shadowRoot.innerHTML = `
-      <style>
-        :host {
-          display: block;
-        }
-
-        .category-section {
-          margin-bottom: var(--spacing-xl, 2rem);
-        }
-
-        .category-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: var(--spacing-lg, 1.5rem);
-          padding-bottom: var(--spacing-md, 1rem);
-          border-bottom: 2px solid var(--color-border, #e1e4e8);
-        }
-
-        .category-title {
-          margin: 0;
-          font-size: var(--font-size-xl, 1.5rem);
-          font-weight: 700;
-          color: var(--color-text-primary, #24292e);
-        }
-
-        .category-stats {
-          font-size: var(--font-size-sm, 0.875rem);
-          color: var(--color-text-secondary, #586069);
-        }
-
-        .stat-label {
-          font-weight: 600;
-          color: var(--color-text-primary, #24292e);
-        }
-
-        .metrics-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: var(--spacing-lg, 1.5rem);
-        }
-
-        @media (max-width: 768px) {
-          .metrics-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-      </style>
-
-      <section
-        class="category-section"
-        role="region"
-        aria-label="${categoryTitle}"
-      >
-        <div class="category-header">
-          <h2 class="category-title">${categoryTitle}</h2>
-          <div class="category-stats">
-            <span class="stat-label">${stats.count} metrics</span>
-            ${stats.count > 0 ? ` | Avg: <span class="stat-label">${stats.avgScore}/100</span>` : ''}
+    this.innerHTML = `
+      <details class="category-section" ${this.isOpen ? 'open' : ''}>
+        <summary class="category-header" role="button" aria-expanded="${this.isOpen}">
+          <div class="category-title">
+            <span class="category-icon" aria-hidden="true">${icon}</span>
+            <span>${this.escapeHtml(name)}</span>
+            <span class="category-weight">(${Math.round(weight * 100)}% weight)</span>
+          </div>
+          <div class="category-score">
+            <span class="category-grade grade-${gradeClass}">${grade}</span>
+            <span class="expand-icon" aria-hidden="true">▼</span>
+          </div>
+        </summary>
+        <div class="category-content">
+          <p class="category-description">${this.escapeHtml(description)}</p>
+          <div class="metrics-list">
+            ${metrics.map(metric => this.renderMetric(metric)).join('')}
           </div>
         </div>
-
-        <div class="metrics-grid">
-          ${this.renderMetrics()}
-        </div>
-      </section>
+      </details>
     `;
 
-    // Set metric data on metric-display components
-    const metricCards = this.shadowRoot.querySelectorAll('metric-display');
-    this._metrics.forEach((metric, index) => {
-      if (metricCards[index]) {
-        metricCards[index].metric = metric;
-      }
+    // Track open state
+    const details = this.querySelector('details');
+    details.addEventListener('toggle', () => {
+      this.isOpen = details.open;
     });
+
+    this.addStyles();
   }
 
-  renderMetrics() {
-    return this._metrics.map(() => '<metric-display></metric-display>').join('');
+  renderMetric(metric) {
+    const scoreClass = metric.level?.class || 'score-fair';
+    const isBoolean = metric.isBoolean || metric.type === 'boolean';
+
+    return `
+      <div class="metric-item" data-metric-id="${metric.id}">
+        <div class="metric-info">
+          <div class="metric-name">${this.escapeHtml(metric.name)}</div>
+          <div class="metric-description">${this.escapeHtml(metric.description)}</div>
+          ${metric.note ? `<div class="metric-note">${this.escapeHtml(metric.note)}</div>` : ''}
+        </div>
+        <div class="metric-value">
+          <span class="metric-raw">${this.escapeHtml(String(metric.displayValue))}</span>
+          ${isBoolean ? `
+            <span class="${metric.rawValue ? 'metric-pass' : 'metric-fail'}" aria-label="${metric.rawValue ? 'Pass' : 'Fail'}">
+              ${metric.rawValue ? '✓' : '✗'}
+            </span>
+          ` : `
+            <span class="metric-score ${scoreClass}" aria-label="Score: ${Math.round(metric.score)}">
+              ${Math.round(metric.score)}
+            </span>
+          `}
+        </div>
+      </div>
+    `;
   }
 
-  getCategoryTitle(category) {
-    const titleMap = {
-      activity: 'Activity Metrics',
-      community: 'Community Metrics',
-      maintenance: 'Maintenance Metrics',
-      documentation: 'Documentation Metrics',
-      security: 'Security & Governance Metrics',
-    };
-    return titleMap[category] || 'Metrics';
-  }
-
-  calculateStats() {
-    if (!this._metrics || this._metrics.length === 0) {
-      return { count: 0, avgScore: 0 };
+  addStyles() {
+    // Add component-specific styles if not already present
+    if (document.querySelector('#category-section-styles')) {
+      return;
     }
 
-    const totalScore = this._metrics.reduce((sum, metric) => sum + metric.score, 0);
-    const avgScore = Math.round(totalScore / this._metrics.length);
+    const style = document.createElement('style');
+    style.id = 'category-section-styles';
+    style.textContent = `
+      .category-description {
+        font-size: var(--font-size-sm);
+        color: var(--color-text-muted);
+        margin-bottom: var(--space-4);
+      }
 
-    return {
-      count: this._metrics.length,
-      avgScore,
-    };
+      .metrics-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+      }
+
+      .metric-note {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+        font-style: italic;
+        margin-top: var(--space-1);
+      }
+
+      .metric-pass {
+        color: var(--color-success);
+        font-weight: var(--font-weight-bold);
+        font-size: var(--font-size-lg);
+      }
+
+      .metric-fail {
+        color: var(--color-error);
+        font-weight: var(--font-weight-bold);
+        font-size: var(--font-size-lg);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 }
-
-// Register the custom element
-customElements.define('category-section', CategorySection);

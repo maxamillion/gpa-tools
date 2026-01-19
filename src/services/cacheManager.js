@@ -1,75 +1,122 @@
 /**
- * Cache Manager Service
- * localStorage-based caching with TTL support
+ * Cache Manager
+ *
+ * IndexedDB-based caching for API responses.
+ * Reduces API calls and improves performance.
  */
 
-const DEFAULT_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+import { openDB } from 'idb';
+
+const DB_NAME = 'oss-health-analyzer';
+const DB_VERSION = 1;
+const STORE_NAME = 'analysis-cache';
 
 export class CacheManager {
-  constructor(prefix = 'gpa') {
-    this.prefix = prefix;
+  constructor() {
+    this.db = null;
   }
 
-  _getKey(key) {
-    return `${this.prefix}:${key}`;
-  }
-
-  set(key, data, ttl = DEFAULT_TTL) {
-    const cacheEntry = {
-      data,
-      timestamp: Date.now(),
-      ttl,
-    };
-
-    try {
-      localStorage.setItem(this._getKey(key), JSON.stringify(cacheEntry));
-    } catch (error) {
-      console.error('Failed to write to cache:', error);
-    }
-  }
-
-  get(key) {
-    try {
-      const cached = localStorage.getItem(this._getKey(key));
-      if (!cached) return null;
-
-      const { data, timestamp, ttl } = JSON.parse(cached);
-      const isExpired = Date.now() - timestamp > ttl;
-
-      if (isExpired) {
-        this.remove(key);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Failed to read from cache:', error);
-      return null;
-    }
-  }
-
-  has(key) {
-    return this.get(key) !== null;
-  }
-
-  remove(key) {
-    try {
-      localStorage.removeItem(this._getKey(key));
-    } catch (error) {
-      console.error('Failed to remove from cache:', error);
-    }
-  }
-
-  clear() {
-    try {
-      const keys = Object.keys(localStorage);
-      keys.forEach((key) => {
-        if (key.startsWith(`${this.prefix}:`)) {
-          localStorage.removeItem(key);
+  /**
+   * Initialize the IndexedDB database
+   */
+  async init() {
+    this.db = await openDB(DB_NAME, DB_VERSION, {
+      upgrade(db) {
+        // Create object store if it doesn't exist
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          const store = db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+          store.createIndex('timestamp', 'timestamp');
         }
-      });
-    } catch (error) {
-      console.error('Failed to clear cache:', error);
+      },
+    });
+  }
+
+  /**
+   * Get cached data by key
+   * @param {string} key - Cache key (usually owner/repo)
+   * @returns {Promise<Object|null>} Cached data or null
+   */
+  async get(key) {
+    if (!this.db) {
+      await this.init();
     }
+
+    const record = await this.db.get(STORE_NAME, key);
+    return record || null;
+  }
+
+  /**
+   * Set cached data
+   * @param {string} key - Cache key
+   * @param {Object} value - Data to cache
+   */
+  async set(key, value) {
+    if (!this.db) {
+      await this.init();
+    }
+
+    await this.db.put(STORE_NAME, {
+      key,
+      ...value,
+    });
+  }
+
+  /**
+   * Delete cached data by key
+   * @param {string} key - Cache key
+   */
+  async delete(key) {
+    if (!this.db) {
+      await this.init();
+    }
+
+    await this.db.delete(STORE_NAME, key);
+  }
+
+  /**
+   * Clear all cached data
+   */
+  async clear() {
+    if (!this.db) {
+      await this.init();
+    }
+
+    await this.db.clear(STORE_NAME);
+  }
+
+  /**
+   * Clean up expired entries
+   * @param {number} maxAge - Maximum age in milliseconds (default: 1 hour)
+   */
+  async cleanup(maxAge = 60 * 60 * 1000) {
+    if (!this.db) {
+      await this.init();
+    }
+
+    const cutoff = Date.now() - maxAge;
+    const tx = this.db.transaction(STORE_NAME, 'readwrite');
+    const index = tx.store.index('timestamp');
+
+    let cursor = await index.openCursor();
+    while (cursor) {
+      if (cursor.value.timestamp < cutoff) {
+        await cursor.delete();
+      }
+      cursor = await cursor.continue();
+    }
+
+    await tx.done;
+  }
+
+  /**
+   * Get all cached keys
+   * @returns {Promise<Array<string>>} List of cache keys
+   */
+  async keys() {
+    if (!this.db) {
+      await this.init();
+    }
+
+    return this.db.getAllKeys(STORE_NAME);
   }
 }

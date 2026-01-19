@@ -1,152 +1,290 @@
 /**
- * GitHub API Client Service
- * Handles all GitHub REST API interactions with rate limiting and caching
+ * GitHub API Service
+ *
+ * Wrapper around Octokit for GitHub API interactions.
+ * Handles rate limiting, pagination, and error handling.
  */
 
 import { Octokit } from '@octokit/rest';
-import { CacheManager } from './cacheManager.js';
 
-export class GitHubApiClient {
+export class GitHubApiService {
+  /**
+   * @param {string|null} token - Optional GitHub Personal Access Token
+   */
   constructor(token = null) {
-    this.octokit = new Octokit(token ? { auth: token } : {});
-    this.cache = new CacheManager('gpa');
+    this.octokit = new Octokit({
+      auth: token,
+      userAgent: 'oss-health-analyzer/1.0',
+    });
+    this.token = token;
   }
 
-  parseRepoUrl(url) {
-    try {
-      const urlObj = new URL(url);
-      if (urlObj.hostname !== 'github.com') {
-        throw new Error('Not a GitHub URL');
-      }
-
-      const pathParts = urlObj.pathname.split('/').filter((p) => p);
-      if (pathParts.length < 2) {
-        throw new Error('Invalid repository URL');
-      }
-
-      const [owner, repo] = pathParts;
-      return { owner, repo };
-    } catch (error) {
-      throw new Error(`Invalid GitHub URL: ${error.message}`);
-    }
-  }
-
-  buildCacheKey(owner, repo, type) {
-    return `repo:${owner}/${repo}:${type}`;
-  }
-
+  /**
+   * Get repository metadata
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @returns {Promise<Object>} Repository data
+   */
   async getRepository(owner, repo) {
-    const cacheKey = this.buildCacheKey(owner, repo, 'info');
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
-
     const { data } = await this.octokit.repos.get({ owner, repo });
-    this.cache.set(cacheKey, data);
     return data;
   }
 
-  async getContributors(owner, repo) {
-    const cacheKey = this.buildCacheKey(owner, repo, 'contributors');
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
-
-    const { data } = await this.octokit.repos.listContributors({
-      owner,
-      repo,
-      per_page: 100,
-    });
-    this.cache.set(cacheKey, data);
-    return data;
-  }
-
-  async getCommits(owner, repo, since = null) {
-    const cacheKey = this.buildCacheKey(owner, repo, `commits:${since || 'all'}`);
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
-
-    const params = { owner, repo, per_page: 100 };
-    if (since) params.since = since;
-
-    const { data } = await this.octokit.repos.listCommits(params);
-    this.cache.set(cacheKey, data);
-    return data;
-  }
-
-  async getReleases(owner, repo) {
-    const cacheKey = this.buildCacheKey(owner, repo, 'releases');
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
-
-    const { data } = await this.octokit.repos.listReleases({
-      owner,
-      repo,
-      per_page: 10,
-    });
-    this.cache.set(cacheKey, data);
-    return data;
-  }
-
-  async getIssues(owner, repo, state = 'all') {
-    const cacheKey = this.buildCacheKey(owner, repo, `issues:${state}`);
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
-
-    const { data } = await this.octokit.issues.listForRepo({
-      owner,
-      repo,
-      state,
-      per_page: 100,
-    });
-    this.cache.set(cacheKey, data);
-    return data;
-  }
-
-  async getPullRequests(owner, repo, state = 'all') {
-    const cacheKey = this.buildCacheKey(owner, repo, `pulls:${state}`);
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
-
-    const { data } = await this.octokit.pulls.list({
-      owner,
-      repo,
-      state,
-      per_page: 100,
-    });
-    this.cache.set(cacheKey, data);
-    return data;
-  }
-
-  async getCommunityProfile(owner, repo) {
-    const cacheKey = this.buildCacheKey(owner, repo, 'community');
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
-
-    const { data } = await this.octokit.repos.getCommunityProfileMetrics({ owner, repo });
-    this.cache.set(cacheKey, data);
-    return data;
-  }
-
-  async getReadme(owner, repo) {
-    const cacheKey = this.buildCacheKey(owner, repo, 'readme');
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
+  /**
+   * Get commits from the last N days
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @param {number} days - Number of days to look back
+   * @returns {Promise<Array>} List of commits
+   */
+  async getCommits(owner, repo, days = 90) {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
 
     try {
-      const { data } = await this.octokit.repos.getReadme({
-        owner,
-        repo,
-        mediaType: { format: 'raw' },
-      });
-      this.cache.set(cacheKey, data);
-      return data;
+      const commits = await this.octokit.paginate(
+        this.octokit.repos.listCommits,
+        {
+          owner,
+          repo,
+          since: since.toISOString(),
+          per_page: 100,
+        },
+        response => response.data
+      );
+      return commits;
     } catch (error) {
-      if (error.status === 404) return null;
+      // Handle empty repositories
+      if (error.status === 409) {
+        return [];
+      }
       throw error;
     }
   }
 
-  async checkRateLimit() {
+  /**
+   * Get repository contributors
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @returns {Promise<Array>} List of contributors
+   */
+  async getContributors(owner, repo) {
+    try {
+      const contributors = await this.octokit.paginate(
+        this.octokit.repos.listContributors,
+        {
+          owner,
+          repo,
+          per_page: 100,
+        },
+        response => response.data
+      );
+      return contributors;
+    } catch (error) {
+      // Handle repositories with no contributors
+      if (error.status === 404) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get repository issues (open and closed)
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @param {number} limit - Maximum number of issues to fetch per state
+   * @returns {Promise<Object>} Issues data { open, closed, all }
+   */
+  async getIssues(owner, repo, limit = 100) {
+    // Fetch open issues
+    const openIssues = await this.octokit.paginate(
+      this.octokit.issues.listForRepo,
+      {
+        owner,
+        repo,
+        state: 'open',
+        per_page: 100,
+      },
+      (response, done) => {
+        const issues = response.data.filter(issue => !issue.pull_request);
+        if (issues.length >= limit) {
+          done();
+        }
+        return issues;
+      }
+    );
+
+    // Fetch recently closed issues (last 90 days)
+    const since = new Date();
+    since.setDate(since.getDate() - 90);
+
+    const closedIssues = await this.octokit.paginate(
+      this.octokit.issues.listForRepo,
+      {
+        owner,
+        repo,
+        state: 'closed',
+        since: since.toISOString(),
+        per_page: 100,
+      },
+      (response, done) => {
+        const issues = response.data.filter(issue => !issue.pull_request);
+        if (issues.length >= limit) {
+          done();
+        }
+        return issues;
+      }
+    );
+
+    return {
+      open: openIssues.slice(0, limit),
+      closed: closedIssues.slice(0, limit),
+      all: [...openIssues.slice(0, limit), ...closedIssues.slice(0, limit)],
+    };
+  }
+
+  /**
+   * Get repository pull requests
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @param {number} limit - Maximum number of PRs to fetch per state
+   * @returns {Promise<Object>} Pull requests data { open, closed, merged }
+   */
+  async getPullRequests(owner, repo, limit = 100) {
+    // Fetch all PRs (closed includes merged)
+    const prs = await this.octokit.paginate(
+      this.octokit.pulls.list,
+      {
+        owner,
+        repo,
+        state: 'all',
+        sort: 'updated',
+        direction: 'desc',
+        per_page: 100,
+      },
+      (response, done) => {
+        if (response.data.length >= limit) {
+          done();
+        }
+        return response.data;
+      }
+    );
+
+    const limitedPrs = prs.slice(0, limit);
+
+    return {
+      open: limitedPrs.filter(pr => pr.state === 'open'),
+      closed: limitedPrs.filter(pr => pr.state === 'closed' && !pr.merged_at),
+      merged: limitedPrs.filter(pr => pr.merged_at),
+      all: limitedPrs,
+    };
+  }
+
+  /**
+   * Get repository releases
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @param {number} limit - Maximum number of releases to fetch
+   * @returns {Promise<Array>} List of releases
+   */
+  async getReleases(owner, repo, limit = 20) {
+    try {
+      const { data } = await this.octokit.repos.listReleases({
+        owner,
+        repo,
+        per_page: limit,
+      });
+      return data;
+    } catch (error) {
+      if (error.status === 404) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get community profile (health files)
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @returns {Promise<Object>} Community profile data
+   */
+  async getCommunityProfile(owner, repo) {
+    try {
+      const { data } = await this.octokit.repos.getCommunityProfileMetrics({
+        owner,
+        repo,
+      });
+      return data;
+    } catch (error) {
+      // Some repos may not have this endpoint available
+      if (error.status === 404) {
+        return {
+          health_percentage: 0,
+          files: {},
+        };
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a file exists in the repository
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @param {string} path - File path
+   * @returns {Promise<boolean>} True if file exists
+   */
+  async fileExists(owner, repo, path) {
+    try {
+      await this.octokit.repos.getContent({
+        owner,
+        repo,
+        path,
+      });
+      return true;
+    } catch (error) {
+      if (error.status === 404) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get file content
+   * @param {string} owner - Repository owner
+   * @param {string} repo - Repository name
+   * @param {string} path - File path
+   * @returns {Promise<string|null>} File content or null if not found
+   */
+  async getFileContent(owner, repo, path) {
+    try {
+      const { data } = await this.octokit.repos.getContent({
+        owner,
+        repo,
+        path,
+      });
+
+      if (data.type === 'file' && data.content) {
+        return atob(data.content);
+      }
+      return null;
+    } catch (error) {
+      if (error.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get rate limit status
+   * @returns {Promise<Object>} Rate limit information
+   */
+  async getRateLimit() {
     const { data } = await this.octokit.rateLimit.get();
-    return data.rate;
+    return data.resources.core;
   }
 }

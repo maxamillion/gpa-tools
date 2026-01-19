@@ -1,91 +1,122 @@
 /**
- * Health Score Calculator Service
- * Calculates overall repository health score from individual metrics
- * Supports custom metric weighting via ConfigurationManager
+ * Health Score Calculator
+ *
+ * Aggregates individual metrics into category and overall health scores.
  */
 
-import { scoreToGrade } from '../utils/scoring.js';
+import { METRIC_CATEGORIES } from '../config/metricDefinitions.js';
+import { getGrade, getScoreLevel } from '../config/thresholds.js';
 
 export class HealthScoreCalculator {
   /**
-   * Create a new HealthScoreCalculator
-   * @param {ConfigurationManager} configManager - Optional configuration manager for custom weighting
+   * Calculate overall health score from metrics
+   * @param {Array<Object>} metrics - Calculated metrics with scores
+   * @returns {Object} Health score data
    */
-  constructor(configManager = null) {
-    this.configManager = configManager;
-  }
+  calculate(metrics) {
+    const categories = {};
 
-  /**
-   * Calculate overall health score and category breakdown
-   * @param {Array<Metric>} metrics - Array of calculated metrics
-   * @returns {Object} Overall score, grade, and category breakdown
-   */
-  calculateOverallScore(metrics) {
-    if (!metrics || metrics.length === 0) {
-      return {
-        overallScore: 0,
-        overallGrade: 'F',
-        categoryBreakdown: {},
+    // Group metrics by category and calculate category scores
+    for (const [categoryId, categoryDef] of Object.entries(METRIC_CATEGORIES)) {
+      const categoryMetrics = metrics.filter(m => m.category === categoryId);
+      const categoryScore = this.calculateCategoryScore(categoryMetrics);
+      const grade = getGrade(categoryScore);
+
+      categories[categoryId] = {
+        ...categoryDef,
+        score: Math.round(categoryScore),
+        grade: grade.grade,
+        gradeColor: grade.color,
+        level: getScoreLevel(categoryScore),
+        metricCount: categoryMetrics.length,
+        metrics: categoryMetrics,
       };
     }
 
-    // Calculate category breakdown
-    const categoryBreakdown = this.calculateCategoryBreakdown(metrics);
+    // Calculate weighted overall score
+    let weightedSum = 0;
+    let totalWeight = 0;
 
-    // Calculate overall score using weighted or simple average
-    const overallScore = this.configManager
-      ? this.configManager.calculateWeightedScore(metrics)
-      : this.calculateSimpleAverage(metrics);
+    for (const categoryData of Object.values(categories)) {
+      const weight = categoryData.weight;
+      weightedSum += categoryData.score * weight;
+      totalWeight += weight;
+    }
 
-    // Calculate overall grade
-    const overallGrade = scoreToGrade(overallScore);
+    const overallScore = totalWeight > 0 ? weightedSum / totalWeight : 0;
+    const overallGrade = getGrade(overallScore);
 
     return {
-      overallScore,
-      overallGrade,
-      categoryBreakdown,
+      score: Math.round(overallScore),
+      grade: overallGrade.grade,
+      gradeColor: overallGrade.color,
+      level: getScoreLevel(overallScore),
+      categories,
+      summary: this.generateSummary(categories, overallScore),
     };
   }
 
   /**
-   * Calculate simple average of all metric scores
-   * @param {Array<Metric>} metrics - Array of calculated metrics
-   * @returns {number} Average score
+   * Calculate score for a category
+   * @param {Array<Object>} metrics - Metrics in this category
+   * @returns {number} Category score 0-100
    */
-  calculateSimpleAverage(metrics) {
-    const totalScore = metrics.reduce((sum, metric) => sum + metric.score, 0);
-    return Math.round(totalScore / metrics.length);
+  calculateCategoryScore(metrics) {
+    if (metrics.length === 0) {
+      return 0;
+    }
+
+    // Simple average of metric scores
+    const totalScore = metrics.reduce((sum, m) => sum + (m.score || 0), 0);
+    return totalScore / metrics.length;
   }
 
   /**
-   * Calculate average score and grade per category
-   * @param {Array<Metric>} metrics - Array of calculated metrics
-   * @returns {Object} Category breakdown with scores and grades
+   * Generate human-readable summary
+   * @param {Object} categories - Category scores
+   * @param {number} overallScore - Overall score
+   * @returns {Object} Summary data
    */
-  calculateCategoryBreakdown(metrics) {
-    const breakdown = {};
+  generateSummary(categories, overallScore) {
+    const strengths = [];
+    const improvements = [];
 
-    // Group metrics by category
-    const categorized = metrics.reduce((acc, metric) => {
-      if (!acc[metric.category]) {
-        acc[metric.category] = [];
+    for (const data of Object.values(categories)) {
+      if (data.score >= 75) {
+        strengths.push({
+          category: data.name,
+          score: data.score,
+          icon: data.icon,
+        });
+      } else if (data.score < 50) {
+        improvements.push({
+          category: data.name,
+          score: data.score,
+          icon: data.icon,
+        });
       }
-      acc[metric.category].push(metric);
-      return acc;
-    }, {});
+    }
 
-    // Calculate average score and grade for each category
-    Object.entries(categorized).forEach(([category, categoryMetrics]) => {
-      const totalScore = categoryMetrics.reduce((sum, metric) => sum + metric.score, 0);
-      const avgScore = Math.round(totalScore / categoryMetrics.length);
-      const grade = scoreToGrade(avgScore);
+    // Sort by score
+    strengths.sort((a, b) => b.score - a.score);
+    improvements.sort((a, b) => a.score - b.score);
 
-      breakdown[category] = {
-        score: avgScore,
-        grade,
-      };
-    });
+    // Generate text summary
+    let text = '';
+    if (overallScore >= 80) {
+      text = 'This project demonstrates excellent overall health with strong practices across multiple areas.';
+    } else if (overallScore >= 60) {
+      text = 'This project shows good health fundamentals with some areas that could be strengthened.';
+    } else if (overallScore >= 40) {
+      text = 'This project has room for improvement in several key health indicators.';
+    } else {
+      text = 'This project would benefit significantly from improvements to its health practices.';
+    }
 
-    return breakdown;
+    return {
+      text,
+      strengths: strengths.slice(0, 3),
+      improvements: improvements.slice(0, 3),
+    };
   }
 }
