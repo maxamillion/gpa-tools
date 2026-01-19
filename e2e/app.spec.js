@@ -44,10 +44,12 @@ test.describe('OSS Health Analyzer', () => {
 
   test('should validate URL format', async ({ page }) => {
     const input = page.locator('#repo-url');
-    await input.fill('not-a-url');
+    // Use a valid URL that's not a GitHub repo - this passes browser validation
+    // but fails app's JavaScript validation
+    await input.fill('https://example.com/not-github');
     await page.locator('#analyze-btn').click();
 
-    // Should show error
+    // Should show error for non-GitHub URL
     await expect(page.locator('#error-section')).toBeVisible();
   });
 
@@ -106,8 +108,8 @@ test.describe('OSS Health Analyzer', () => {
   });
 
   test('should dismiss error when clicking try again', async ({ page }) => {
-    // Trigger an error
-    await page.locator('#repo-url').fill('not-a-url');
+    // Trigger an error with a valid URL that's not a GitHub repo
+    await page.locator('#repo-url').fill('https://example.com/not-github');
     await page.locator('#analyze-btn').click();
     await expect(page.locator('#error-section')).toBeVisible();
 
