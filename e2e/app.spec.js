@@ -4,9 +4,25 @@
 
 import { test, expect } from '@playwright/test';
 
+/**
+ * Helper to wait for the app to be fully initialized.
+ * Waits for custom elements to be defined, which indicates JS has loaded and executed.
+ */
+async function waitForAppReady(page) {
+  await page.waitForFunction(() => {
+    // Check if custom elements are defined (indicates JS modules loaded)
+    const healthCardDefined = customElements.get('health-score-card') !== undefined;
+    // Check if form exists and has the expected structure
+    const form = document.getElementById('repo-form');
+    const button = document.getElementById('analyze-btn');
+    return healthCardDefined && form !== null && button !== null && !button.disabled;
+  }, { timeout: 10000 });
+}
+
 test.describe('OSS Health Analyzer', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await waitForAppReady(page);
   });
 
   test('should display the home page', async ({ page }) => {
@@ -46,7 +62,9 @@ test.describe('OSS Health Analyzer', () => {
 
   test('should load repo from URL parameter', async ({ page }) => {
     await page.goto('/?repo=facebook/react');
-    // Wait for JavaScript to initialize and process URL param
+    // Wait for app to initialize and process URL param
+    await waitForAppReady(page);
+    // Wait for the input value to be populated from URL param
     await page.waitForFunction(() => {
       const input = document.getElementById('repo-url');
       return input && input.value.includes('github.com');
@@ -102,6 +120,7 @@ test.describe('OSS Health Analyzer', () => {
 test.describe('Keyboard Navigation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await waitForAppReady(page);
   });
 
   test('should focus input on tab', async ({ page }) => {
@@ -116,12 +135,6 @@ test.describe('Keyboard Navigation', () => {
   });
 
   test('should submit form with button click', async ({ page }) => {
-    // Wait for JavaScript to be ready
-    await page.waitForFunction(() => {
-      const form = document.getElementById('repo-form');
-      return form !== null;
-    });
-
     await page.locator('#repo-url').fill('https://github.com/facebook/react');
     await page.locator('#analyze-btn').click();
 
